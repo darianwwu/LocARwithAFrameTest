@@ -1,0 +1,33 @@
+{
+    "name": "locar-aframe",
+    "version": "0.0.2",
+    "description": "Location-based AR from AR.js - A-Frame components.",
+    "files": [
+      "dist"
+    ],
+    "main": "./dist/locar-aframe.umd.js",
+    "module": "./dist/locar-aframe.es.js",
+    "exports": {
+      ".": {
+        "import": "./dist/locar-aframe.es.js",
+        "require": "./dist/locar-aframe.umd.js"
+      }
+    },
+    "homepage": "https://darianwwu.github.io/LocARwithAFrameTest",
+    "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "predeploy": "npm run build",
+      "deploy": "gh-pages -d dist"
+    },
+    "devDependencies": {
+      "gh-pages": "^6.3.0",
+      "vite": "^5.4.8"
+    },
+    "dependencies": {
+      "aframe": "^1.7.1",
+      "locar": "^0.0.11",
+      "three": "^0.175.0"
+    }
+  }
+  
