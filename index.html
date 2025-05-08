@@ -6,10 +6,11 @@
 
     <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-    <!-- AR.js für A-Frame -->
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
-    <!-- locar-aframe Komponenten -->
-   
+
+    <!-- LocAR als Modul -->
+
+    <!-- LocAR-Komponenten für A-Frame -->
+
     <style>
       body { margin: 0; overflow: hidden; }
       video {
@@ -25,14 +26,13 @@
         z-index: 1;
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-CwGXlGb6.js"></script>
+    <script type="module" crossorigin src="./assets/index-CQleIbfy.js"></script>
   </head>
 
   <body>
     <a-scene
       embedded
       renderer="alpha: true; antialias: true"
-      arjs="sourceType: webcam; debugUIEnabled: false;"
       locar-webcam="idealWidth:1280; idealHeight:720"
     >
       <!-- GPS-Kamera -->
