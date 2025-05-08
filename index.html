@@ -2,9 +2,16 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>AR Navigation Demo with A-Frame</title>
-  <script type="module" crossorigin src="./assets/index-Iued-zSN.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ✅ A-Frame zuerst (NICHT als type="module") -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+  <!-- ✅ Dann AR.js, das auf A-Frame basiert -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
+
+  <title>AR Navigation Demo</title>
+  <script type="module" crossorigin src="./assets/index-BXf5fTpV.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-o0PcOb7A.css">
 </head>
 <body>
@@ -44,14 +51,7 @@
       <div id="compassArrow">↑</div>
       <div id="compassText"></div>
     </div>
-  </div>
-  <!-- 1. A-Frame zuerst -->
-<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
-<!-- 2. Dann AR.js, das auf A-Frame basiert -->
-<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
-
-<!-- 3. Dann deine eigenen Scripts -->
+  </div>
 
 </body>
 </html>
