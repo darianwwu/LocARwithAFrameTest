@@ -1,34 +1,27 @@
 <!DOCTYPE html>
 <html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <title>locar-aframe Demo</title>
-
-    <!-- A-Frame -->
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-    <!-- AR.js für A-Frame -->
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
-    <!-- locar-aframe Komponenten -->
-
-    <style>
-      body { margin: 0; overflow: hidden; }
-      video {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        object-fit: cover;
-        z-index: 0;
-      }
-      canvas {
-        position: fixed;
-        top: 0; left: 0;
-        z-index: 1;
-      }
-    </style>
-    <script type="module" crossorigin src="./assets/index-CwGXlGb6.js"></script>
-  </head>
-
-  <body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>AR Navigation Demo with A-Frame</title>
+  <script type="module" crossorigin src="./assets/index-BH-o0lz2.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DRXKkts8.css">
+</head>
+<body>
+  <div id="overlayContainer">
+    <label for="longitude">Longitude:</label>
+    <input type="number" id="longitude" step="0.000001" value="7.651058">
+    <br>
+    <label for="latitude">Latitude:</label>
+    <input type="number" id="latitude" step="0.000001" value="51.935260">
+    <br>
+    <button id="btnAddMarker">Hinzufügen</button>
+    <br>
+    <button id="btnStart">Start</button>
+    <br>
+    <button id="btnTestAdd">5 Testmarker hinzufügen</button>
+  </div>
+  <div id="arContainer">
     <a-scene
       embedded
       renderer="alpha: true; antialias: true"
@@ -38,15 +31,19 @@
       <!-- GPS-Kamera -->
       <a-entity
         camera
-        look-controls="smoothingFactor: 0.02"
-        wasd-controls
+        look-controls="smoothingFactor: 0.05"
         locar-camera="positionMinAccuracy: 50"
       ></a-entity>
-
-      <!-- Box vor der Kamera an gleicher Position -->
-      <a-entity locar-entity-place="latitude:51.935306; longitude:7.652669">
-        <a-box scale="1 1 1" color="tomato"></a-box>
-      </a-entity>
     </a-scene>
-  </body>
+    <div id="markerPopup" style="display: none;">
+      <p id="markerPopupText">AR-Marker wurde geklickt!</p>
+      <span id="popupClose">X</span>
+    </div>
+    <div id="distance-overlay">0 m</div>
+    <div id="compassContainer">
+      <div id="compassArrow">↑</div>
+      <div id="compassText"></div>
+    </div>
+  </div>
+</body>
 </html>
