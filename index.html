@@ -1,52 +1,19 @@
 <!DOCTYPE html>
-<html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <title>locar-aframe Demo</title>
-
-    <!-- A-Frame -->
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-
-    <!-- LocAR als Modul -->
-
-    <!-- LocAR-Komponenten für A-Frame -->
-
-    <style>
-      body { margin: 0; overflow: hidden; }
-      video {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        object-fit: cover;
-        z-index: 0;
-      }
-      canvas {
-        position: fixed;
-        top: 0; left: 0;
-        z-index: 1;
-      }
-    </style>
-    <script type="module" crossorigin src="./assets/index-CQleIbfy.js"></script>
-  </head>
-
-  <body>
-    <a-scene
-      embedded
-      renderer="alpha: true; antialias: true"
-      locar-webcam="idealWidth:1280; idealHeight:720"
-    >
-      <!-- GPS-Kamera -->
-      <a-entity
-        camera
-        look-controls="smoothingFactor: 0.05"
-        wasd-controls
-        locar-camera="positionMinAccuracy: 50"
-      ></a-entity>
-
-      <!-- Box vor der Kamera an gleicher Position -->
-      <a-entity locar-entity-place="latitude:51.935306; longitude:7.652669">
-        <a-box scale="1 1 1" color="tomato"></a-box>
-      </a-entity>
-    </a-scene>
-  </body>
+<html>
+<head>
+  <script type="module" crossorigin src="./assets/index-CH140YnU.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-D1ozsMkJ.css">
+</head>
+<body>
+<main>
+<div id="gpsinput">
+<div><input id="fakeLat" placeholder="Fake Lat" /></div>
+<div><input id="fakeLon" placeholder="Fake Lon"/></div>
+<div><button id="setFakeLoc">Set Fake Location!</button></div>
+</div>
+<a-scene id="glscene" locar-webcam>
+<a-camera look-controls='magicWindowTrackingEnabled: false' wasd-controls locar-camera></a-camera>
+</a-scene>
+</main>
+</body>
 </html>
