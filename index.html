@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>locar-aframe Demo</title>
+
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <!-- AR.js für A-Frame -->
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
+    <!-- locar-aframe Komponenten -->
+
+    <style>
+      body { margin: 0; overflow: hidden; }
+      video {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        object-fit: cover;
+        z-index: 0;
+      }
+      canvas {
+        position: fixed;
+        top: 0; left: 0;
+        z-index: 1;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-CwGXlGb6.js"></script>
+  </head>
+
+  <body>
+    <a-scene
+      embedded
+      renderer="alpha: true; antialias: true"
+      arjs="sourceType: webcam; debugUIEnabled: false;"
+      locar-webcam="idealWidth:1280; idealHeight:720"
+    >
+      <!-- GPS-Kamera mit simuliertem Standort -->
+      <a-entity
+        camera
+        look-controls
+        wasd-controls
+        locar-camera="simulateLatitude:48.1371; simulateLongitude:11.5754; simulateAltitude: 520; positionMinAccuracy: 50"
+      ></a-entity>
+
+      <!-- Box vor der Kamera an gleicher Position -->
+      <a-entity locar-entity-place="latitude:48.1371; longitude:11.5754">
+        <a-box position="0 1 -3" scale="1 1 1" color="tomato"></a-box>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
