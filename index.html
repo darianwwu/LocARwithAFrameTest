@@ -18,28 +18,22 @@
     <br>
     <button id="btnTestAdd">5 Testmarker hinzufügen</button>
   </div>
-
-  <!-- Szene zunächst verstecken -->
-  <div id="arContainer" style="display:none; width:100%; height:100%; position:absolute; top:0; left:0;">
-    <a-scene id="glscene" locar-webcam="idealWidth: 4096; idealHeight: 2190" embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+  <div id="arContainer">
+    <a-scene id="glscene" locar-webcam="idealWidth: 4096; idealHeight: 2190">
       <a-camera id="camera"
+        look-controls="magicWindowTrackingEnabled: false" 
+        wasd-controls 
         locar-camera
-        gps-new-camera="gpsMinDistance: 5"
-        arjs-device-orientation-controls="smoothingFactor: 0.1"
-        look-controls="magicWindowTrackingEnabled: false"
-        wasd-controls>
+        arjs-device-orientation-controls="smoothingFactor: 0.1" 
+        gps-new-camera="gpsMinDistance: 5">
       </a-camera>
     </a-scene>
-
-    <!-- Marker-Popup -->
-    <div id="markerPopup" style="display: none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.7); color:white; padding:10px; border-radius:5px;">
-      <span id="popupClose" style="cursor:pointer; float:right;">X</span>
+    <div id="markerPopup" style="display: none;">
       <p id="markerPopupText">AR-Marker wurde geklickt!</p>
+      <span id="popupClose">X</span>
     </div>
-
-    <!-- Entfernung und Kompass -->
-    <div id="distance-overlay" style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:white; font-size:18px;">0 m</div>
-    <div id="compassContainer" style="position:absolute; top:10px; right:10px; color:white;">
+    <div id="distance-overlay">0 m</div>
+    <div id="compassContainer">
       <div id="compassArrow">↑</div>
       <div id="compassText"></div>
     </div>
