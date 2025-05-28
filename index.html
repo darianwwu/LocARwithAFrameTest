@@ -19,13 +19,13 @@
     <button id="btnTestAdd">5 Testmarker hinzufügen</button>
   </div>
   <div id="arContainer">
-    <a-scene id="glscene" locar-webcam="idealWidth: 4096; idealHeight: 2190" device-orientation-permission-ui="enabled: false">
+    <a-scene id="glscene" locar-webcam="idealWidth: 4096; idealHeight: 2190" device-orientation-permission-ui="enabled: false" loading-screen="enabled: false">
       <a-camera id="camera"
         look-controls="magicWindowTrackingEnabled: false" 
         wasd-controls 
         locar-camera
-        arjs-device-orientation-controls="smoothingFactor: 0.01" 
-        gps-new-camera="gpsMinDistance: 1">
+        arjs-device-orientation-controls="smoothingFactor: 0.05" 
+        gps-new-camera="gpsMinDistance: 3">
       </a-camera>
     </a-scene>
     <div id="markerPopup" style="display: none;">
