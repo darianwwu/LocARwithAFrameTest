@@ -1,49 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-  <meta charset="utf-8">
-  <title>LocAR mit Vorab-Permissions</title>
-  <style>
-    /* Einfaches zentriertes Overlay für den Perm-Button */
-    #permissionContainer, #overlayContainer {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(0,0,0,0.6);
-      flex-direction: column;
-      z-index: 1000;
-    }
-    #permissionContainer.hidden,
-    #overlayContainer.hidden {
-      display: none;
-    }
-    #permissionContainer button,
-    #overlayContainer button {
-      font-size: 1.2rem;
-      padding: 0.5rem 1rem;
-      margin-top: 1rem;
-    }
-    /* Das AR-Element bleibt erstmal unsichtbar */
-    #arContainer {
-      display: none;
-    }
-  </style>
-  <script type="module" crossorigin src="./assets/index-CqNKb6dc.js"></script>
+  <script type="module" crossorigin src="./assets/index-LoGcEEcc.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-DRXKkts8.css">
 </head>
 <body>
-
-  <div id="permissionContainer">
-    <div style="color: white; font-size: 1.5rem; text-align: center;">
-      Bitte erlaube Kamera, GPS und Bewegungssensoren,<br>
-      sonst funktioniert AR nicht.
-    </div>
-    <button id="btnGrant">Permissions erteilen</button>
-  </div>
-
-  <div id="overlayContainer" class="hidden">
+  <div id="overlayContainer">
     <label for="longitude">Longitude:</label>
     <input type="number" id="longitude" step="0.000001" value="7.651058">
     <br>
@@ -52,12 +14,11 @@
     <br>
     <button id="btnAddMarker">Hinzufügen</button>
     <br>
-    <button id="btnStart">Start AR</button>
+    <button id="btnStart">Start</button>
     <br>
     <button id="btnTestAdd">5 Testmarker hinzufügen</button>
   </div>
 
-  <div id="arContainer"></div>
-
+  <div id="arContainer" style="display: none;"></div>
 </body>
 </html>
