@@ -8,6 +8,18 @@ canvas {
   display: block;
 }
 
+a-scene {
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover; /* oder: contain, wenn du Ränder zulassen willst */
+}
+
+a-scene > canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* wichtig für Kamera-Feed */
+}
+
 #overlayContainer {
   position: absolute;
   top: 0;
