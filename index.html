@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script type="module" crossorigin src="./assets/index-CT7CF4Lv.js"></script>
+  <script type="module" crossorigin src="./assets/index-B79l-5GG.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-5MhBoWoc.css">
 </head>
 <body>
@@ -19,6 +19,28 @@
     <button id="btnTestAdd">5 Testmarker hinzufügen</button>
   </div>
 
-  <div id="arContainer" style="display: none;"></div>
+  <div id="arContainer" style="display: none;">
+    <a-scene id="glscene" embedded vr-mode-ui="enabled:false"
+      locar-webcam="idealWidth:4096;idealHeight:2190"
+      device-orientation-permission-ui="enabled:false"
+      loading-screen="enabled:false">
+      <a-camera id="camera"
+        look-controls="magicWindowTrackingEnabled:false"
+        wasd-controls
+        locar-camera
+        device-orientation-controls="smoothingFactor:0.05"
+        gps-new-camera="gpsMinDistance:3">
+      </a-camera>
+    </a-scene>
+    <div id="markerPopup" style="display:none;position:absolute;top:1rem;left:1rem;background:white;padding:0.5rem;border-radius:4px;">
+      <p id="markerPopupText">AR-Marker wurde geklickt!</p>
+      <span id="popupClose" style="cursor:pointer;">✖</span>
+    </div>
+    <div id="distance-overlay" style="position:absolute;bottom:1rem;left:1rem;color:white;font-size:1.2rem;">0 m</div>
+    <div id="compassContainer" style="position:absolute;bottom:1rem;right:1rem;color:white;">
+      <div id="compassArrow">↑</div>
+      <div id="compassText"></div>
+    </div>
+  </div>
 </body>
 </html>
