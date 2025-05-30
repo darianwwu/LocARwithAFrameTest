@@ -25,6 +25,19 @@ canvas {
   height: 100%;
 }
 
+#messageContainer {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  z-index: 20;
+}
+
 #distance-overlay {
   position: absolute;
   bottom: 3%; /* Position unter dem Pfeil */
