@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-  <style>
-    /* AR-Container unsichtbar starten */
-    #arContainer { display: none; position: fixed; top:0; left:0; width:100vw; height:100vh; }
-    /* Overlay oben drüber */
-    #overlayContainer { position: relative; z-index: 10; }
-  </style>
-  <script type="module" crossorigin src="./assets/index-BBXXLfMx.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>A-Frame AR Navigation Demo</title>
+  <script type="module" crossorigin src="./assets/index-DWqNiETC.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-5MhBoWoc.css">
 </head>
 <body>
+
   <div id="overlayContainer">
     <label for="longitude">Longitude:</label>
     <input type="number" id="longitude" step="0.000001" value="7.651058"><br>
@@ -22,30 +20,34 @@
   </div>
 
   <div id="arContainer">
-    <a-scene id="glscene" embedded vr-mode-ui="enabled:false"
+    <a-scene
+      embedded
+      vr-mode-ui="enabled: false"
       locar-webcam="idealWidth:4096;idealHeight:2190"
-      device-orientation-permission-ui="enabled:false"
-      loading-screen="enabled:false">
+      device-orientation-permission-ui="enabled: false"
+      loading-screen="enabled: false">
+
       <a-camera id="camera"
-        look-controls="magicWindowTrackingEnabled:false"
+        look-controls="magicWindowTrackingEnabled: false"
         wasd-controls
         locar-camera
         device-orientation-controls="smoothingFactor:0.05"
         gps-new-camera="gpsMinDistance:3">
       </a-camera>
+
     </a-scene>
 
-    <div id="markerPopup" style="display:none; position:absolute; top:1rem; left:1rem; background:white; padding:0.5rem; border-radius:4px;">
-      <p id="markerPopupText">AR-Marker wurde geklickt!</p>
+    <div id="markerPopup">
+      <p id="markerPopupText">AR-Marker geklickt!</p>
       <span id="popupClose" style="cursor:pointer;">✖</span>
     </div>
-    <div id="distance-overlay" style="position:absolute; bottom:1rem; left:1rem; color:white; font-size:1.2rem;">
-      0 m
-    </div>
-    <div id="compassContainer" style="position:absolute; bottom:1rem; right:1rem; color:white;">
+
+    <div id="distance-overlay">0 m</div>
+    <div id="compassContainer">
       <div id="compassArrow">↑</div>
       <div id="compassText"></div>
     </div>
   </div>
+
 </body>
 </html>
