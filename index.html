@@ -1,24 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script type="module" crossorigin src="./assets/index-wGc6uM-l.js"></script>
+  <style>
+    /* AR-Container unsichtbar starten */
+    #arContainer { display: none; position: fixed; top:0; left:0; width:100vw; height:100vh; }
+    /* Overlay oben drüber */
+    #overlayContainer { position: relative; z-index: 10; }
+  </style>
+  <script type="module" crossorigin src="./assets/index-BBXXLfMx.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-5MhBoWoc.css">
 </head>
 <body>
   <div id="overlayContainer">
     <label for="longitude">Longitude:</label>
-    <input type="number" id="longitude" step="0.000001" value="7.651058">
-    <br>
+    <input type="number" id="longitude" step="0.000001" value="7.651058"><br>
     <label for="latitude">Latitude:</label>
-    <input type="number" id="latitude" step="0.000001" value="51.935260">
-    <br>
-    <button id="btnAddMarker">Hinzufügen</button>
-    <br>
+    <input type="number" id="latitude" step="0.000001" value="51.935260"><br>
+    <button id="btnAddMarker">Hinzufügen</button><br>
+    <button id="btnTestAdd">5 Testmarker hinzufügen</button><br>
     <button id="btnStart">Start</button>
-    <br>
-    <button id="btnTestAdd">5 Testmarker hinzufügen</button>
   </div>
 
-  <div id="arContainer" style="display: none;"></div>
+  <div id="arContainer">
+    <a-scene id="glscene" embedded vr-mode-ui="enabled:false"
+      locar-webcam="idealWidth:4096;idealHeight:2190"
+      device-orientation-permission-ui="enabled:false"
+      loading-screen="enabled:false">
+      <a-camera id="camera"
+        look-controls="magicWindowTrackingEnabled:false"
+        wasd-controls
+        locar-camera
+        device-orientation-controls="smoothingFactor:0.05"
+        gps-new-camera="gpsMinDistance:3">
+      </a-camera>
+    </a-scene>
+
+    <div id="markerPopup" style="display:none; position:absolute; top:1rem; left:1rem; background:white; padding:0.5rem; border-radius:4px;">
+      <p id="markerPopupText">AR-Marker wurde geklickt!</p>
+      <span id="popupClose" style="cursor:pointer;">✖</span>
+    </div>
+    <div id="distance-overlay" style="position:absolute; bottom:1rem; left:1rem; color:white; font-size:1.2rem;">
+      0 m
+    </div>
+    <div id="compassContainer" style="position:absolute; bottom:1rem; right:1rem; color:white;">
+      <div id="compassArrow">↑</div>
+      <div id="compassText"></div>
+    </div>
+  </div>
 </body>
 </html>
