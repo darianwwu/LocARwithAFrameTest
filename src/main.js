@@ -47,16 +47,35 @@ btnAdd.addEventListener('click', () => {
   showPopup('Marker hinzugefügt!', 1500);
 });
 
-btnTest.addEventListener('click', () => {
-  const tests = [
-    { longitude:7.651058, latitude:51.935260, popupContent:'Polter 1…' },
-    { longitude:7.651110, latitude:51.933416, popupContent:'Polter 2…' },
-    { longitude:7.653852, latitude:51.934496, popupContent:'Lichtung 1…' },
-    { longitude:7.658851, latitude:51.934513, popupContent:'Lichtung 2…' },
-    { longitude:7.648327, latitude:51.934420, popupContent:'Sonstiger POI 1…' }
-  ];
-  targetCoords.push(...tests);
-  showPopup('5 Marker hinzugefügt!', 1500);
+// Test-Button zum Hinzufügen von Testmarkern, wird in der produktiven Version entfernt
+btnTest.addEventListener('click', async () => {
+  // Für Test Button aktuelle Position abrufen um Testpunkte zu setzen
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject);
+    });
+    console.log('Current position:', pos);
+    currentCoords.latitude  = pos.coords.latitude;
+    currentCoords.longitude = pos.coords.longitude;
+    console.log('Aktuelle Koordinaten gesetzt:', currentCoords);
+
+    // Erzeuge 5 Testpunkte mit einfachen Offsets in unterschiedlichen Entfernungen
+    const baseLat = currentCoords.latitude;
+    const baseLon = currentCoords.longitude;
+
+    const tests = [
+      { latitude: baseLat + 0.00027, longitude: baseLon, popupContent: 'Testpunkt ~30m Nord' },
+      { latitude: baseLat, longitude: baseLon + 0.0011, popupContent: 'Testpunkt ~80m Ost' },
+      { latitude: baseLat - 0.0027, longitude: baseLon, popupContent: 'Testpunkt ~300m Süd' },
+      { latitude: baseLat, longitude: baseLon - 0.0054, popupContent: 'Testpunkt ~400m West' },
+      { latitude: baseLat + 0.0081, longitude: baseLon + 0.0081, popupContent: 'Testpunkt ~900m Nordost' }
+    ];
+    targetCoords.push(...tests);
+    showPopup('5 Marker hinzugefügt!', 1500);
+  } catch (err) {
+    console.error('Fehler beim Abrufen der aktuellen Position:', err);
+    showPopup('Fehler beim Abrufen der aktuellen Position', 3000);
+  }
 });
 
 btnStart.addEventListener('click', async() => {
