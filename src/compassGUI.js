@@ -5,7 +5,6 @@ export class CompassGUI {
     this.compassText = document.getElementById(compassTextId);
     this.getScreenOrientation = getScreenOrientation;
   }
-
   // Aktualisiert die GUI-Elemente (Pfeil und Zahl) des Kompasses
   update() {
     // Prüfen, ob deviceOrientation Property vorhanden ist
@@ -31,7 +30,12 @@ export class CompassGUI {
     }
       
     // UI Elemente aktualisieren
+    if (this.deviceOrientationControl.deviceOrientation?.webkitCompassHeading !== undefined) {
+      this.compassArrow.style.transform = `rotate(${-heading}deg)`;
+    }
+    else {
     this.compassArrow.style.transform = `rotate(${heading}deg)`;
+    }
     this.compassText.innerText = `${Math.round(heading)}°`;
   }
 }
