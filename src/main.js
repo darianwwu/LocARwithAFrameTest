@@ -1,11 +1,11 @@
 import 'aframe';
-import 'locar-aframe';
+import './locar-aframenew.js';
+import { DeviceOrientationControlsOptional as DeviceOrientationControls } from './locarnew.js';
 import 'aframe-look-at-component';
 import { CompassGUI } from './compassGUI.js';
 import { ARNavigationArrow } from './arNavigationArrow.js';
 import { TargetMarker } from './targetMarker.js';
 import { updateDistance } from './distanceOverlay.js';
-import { DeviceOrientationControls } from 'locar';
 
 // Elemente
 const overlayContainer = document.getElementById('overlayContainer');
@@ -167,12 +167,32 @@ btnTest.addEventListener('click', () => {
   showPopup('5 Marker hinzugefügt!', 1500);
 });
 
-btnStart.addEventListener('click', () => {
+btnStart.addEventListener('click', async() => {
   console.log('Start button clicked');
+  init();
+  if (
+    window.DeviceOrientationEvent &&
+    typeof window.DeviceOrientationEvent.requestPermission === "function"
+  ) {
+    try {
+      const result = await DeviceOrientationEvent.requestPermission();
+      if (result === "granted") {
+        // 2. erst jetzt connect() aufrufen, um Listener zu registrieren
+        controls.connect();
+      } else {
+        alert("Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.");
+      }
+    } catch (err) {
+      console.error("Permission‐Request schlug fehl:", err);
+    }
+  } else {
+    // Nicht‐iOS oder kein requestPermission API: direkt connecten
+    controls.connect();
+  }
   overlayContainer.remove();
   arContainer.style.display = 'block';
+
   console.log('Overlay removed, AR container shown');
-  init();
 });
 
 // Hilfsfunktion für Popup
@@ -202,7 +222,10 @@ function init() {
   threeCamera = threeCam;
   console.log('threeCamera gesetzt:', threeCamera);
 
-  controls = new DeviceOrientationControls(threeCamera);
+  controls = new DeviceOrientationControls(threeCamera, {
+    smoothingFactor: 0.05,
+    enablePermissionDialog: false
+  });
   console.log('DeviceOrientationControls initialisiert');
 
   const comp = cameraEl.components['locar-camera'];
