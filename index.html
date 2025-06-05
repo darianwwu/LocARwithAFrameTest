@@ -1,42 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-  <script type="module" src="src/main.js"></script>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />
   <link rel="stylesheet" href="/public/stylesheets/style.css" />
+  <title>AR Navigation Demo</title>
 </head>
 <body>
-  <div id="overlayContainer">
-    <label for="longitude">Longitude:</label>
-    <input type="number" id="longitude" step="0.000001" value="7.651058">
-    <br>
-    <label for="latitude">Latitude:</label>
-    <input type="number" id="latitude" step="0.000001" value="51.935260">
-    <br>
-    <button id="btnAddMarker">Hinzufügen</button>
-    <br>
-    <button id="btnStart">Start</button>
-    <br>
-    <button id="btnTestAdd">5 Testmarker hinzufügen</button>
+  <!-- Splash Screen -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-logo">🌲</div>
+    <h1 class="splash-title">AR Navigation</h1>
+    <p class="splash-subtitle">im Wald-Kontext</p>
+    <div class="loading-bar">
+      <div class="loading-progress"></div>
+    </div>
   </div>
-  <div id="arContainer" style="display: none;">
-    <a-scene id="glscene" locar-webcam="idealWidth: 4096; idealHeight: 2190" device-orientation-permission-ui="enabled: false" loading-screen="enabled: false">
-      <a-camera id="camera"
-        look-controls="magicWindowTrackingEnabled: false" 
-        wasd-controls 
+
+  <!-- Overlay Container (Form) -->
+  <div id="overlayContainer" class="overlay-container">
+    <div class="form-container">
+      <div class="form-header">
+        <h2 class="form-title">Standort eingeben</h2>
+        <p class="form-subtitle">Füge neue Navigationspunkte hinzu</p>
+      </div>
+
+      <div class="form-group">
+        <label for="longitude" class="form-label">Längengrad (Longitude)</label>
+        <input
+          type="number"
+          id="longitude"
+          class="form-input"
+          step="0.000001"
+          value="7.651058"
+          placeholder="z.B. 7.651058"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="latitude" class="form-label">Breitengrad (Latitude)</label>
+        <input
+          type="number"
+          id="latitude"
+          class="form-input"
+          step="0.000001"
+          value="51.935260"
+          placeholder="z.B. 51.935260"
+        />
+      </div>
+
+      <button id="btnAddMarker" class="btn btn--primary">Marker hinzufügen</button>
+      <button id="btnStart" class="btn btn--accent">Navigation starten</button>
+
+      <div class="divider">oder</div>
+
+      <button id="btnTestAdd" class="btn btn--outline">
+        5 Testmarker laden
+      </button>
+    </div>
+  </div>
+
+  <!-- AR Container (mit A-Frame) -->
+  <div id="arContainer" class="ar-container">
+    <a-scene
+      id="glscene"
+      locar-webcam="idealWidth: 4096; idealHeight: 2190"
+      device-orientation-permission-ui="enabled: false"
+      loading-screen="enabled: false"
+    >
+      <a-camera
+        id="camera"
+        look-controls="magicWindowTrackingEnabled: false"
+        wasd-controls
         locar-camera
-        device-orientation-controls="smoothingFactor: 0.05" 
-        gps-new-camera="gpsMinDistance: 3">
-      </a-camera>
+        device-orientation-controls="smoothingFactor: 0.05"
+        gps-new-camera="gpsMinDistance: 3"
+      ></a-camera>
     </a-scene>
-    <div id="markerPopup" style="display: none;">
-      <p id="markerPopupText">AR-Marker wurde geklickt!</p>
-      <span id="popupClose">X</span>
+
+    <!-- Marker-Popup (über CSS-Klassen gesteuert) -->
+    <div id="markerPopup" class="marker-popup">
+      <p id="markerPopupText" class="marker-popup__text">
+        AR-Marker wurde geklickt!
+      </p>
+      <span id="popupClose" class="marker-popup__close">✕</span>
     </div>
-    <div id="distance-overlay">0 m</div>
-    <div id="compassContainer">
-      <div id="compassArrow">↑</div>
-      <div id="compassText"></div>
+
+    <div id="distance-overlay" class="distance-overlay">0 m</div>
+
+    <div id="compassContainer" class="compass-container">
+      <div id="compassArrow" class="compass-arrow">↑</div>
+      <div id="compassText" class="compass-text"></div>
     </div>
   </div>
+
+  <!-- Inline-Script: Splash-Screen + Popup-Logik -->
+  <script>
+    // Splash Screen ausblenden
+    setTimeout(() => {
+      const splash = document.getElementById('splashScreen');
+      splash.classList.add('splash-screen--hidden');
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 350);
+    }, 2500);
+
+    // Popup-Elemente
+    const markerPopup = document.getElementById('markerPopup');
+    const closeButton = document.getElementById('popupClose');
+
+    closeButton.addEventListener('click', () => {
+      markerPopup.classList.remove('marker-popup--visible');
+    });
+
+    // showMarkerPopup-Funktion (gleiche Signatur wie im funktionierenden Projekt)
+    window.showMarkerPopup = (text, duration = 5000) => {
+      const popupText = document.getElementById('markerPopupText');
+      popupText.textContent = text;
+      markerPopup.classList.add('marker-popup--visible');
+
+      if (duration > 0) {
+        setTimeout(() => {
+          markerPopup.classList.remove('marker-popup--visible');
+        }, duration);
+      }
+    };
+  </script>
+
+  <!-- Haupt-Script (Module) -->
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>

@@ -58,8 +58,7 @@ function rebuildAllMarkers() {
 // UI-Event-Handler
 console.log('Binding UI events');
 closeButton.addEventListener('click', () => {
-  console.log('Popup close clicked');
-  markerPopup.style.display = 'none';
+  markerPopup.classList.remove('marker-popup--visible');
 });
 
 // iOS-spezifischer Orientierungs-Fix
@@ -146,7 +145,7 @@ btnAdd.addEventListener('click', () => {
 });
 
 btnTest.addEventListener('click', () => {
-  console.log('Test marker button clicked');
+  //console.log('Test marker button clicked');
   const tests = [
     { longitude:7.651058, latitude:51.935260, popupContent:'Polter 1…' },
     { longitude:7.651110, latitude:51.933416, popupContent:'Polter 2…' },
@@ -164,7 +163,7 @@ btnTest.addEventListener('click', () => {
   ];
   */
   targetCoords.push(...tests);
-  console.log('Added test markers, count:', targetCoords.length);
+  //console.log('Added test markers, count:', targetCoords.length);
   showPopup('5 Marker hinzugefügt!', 1500);
 });
 
@@ -178,13 +177,13 @@ btnStart.addEventListener('click', () => {
 
 // Hilfsfunktion für Popup
 function showPopup(text, d) {
-  console.log('Showing popup:', text);
   markerPopupText.textContent = text;
-  markerPopup.style.display = 'block';
-  setTimeout(() => {
-    console.log('Hiding popup after', d, 'ms');
-    markerPopup.style.display = 'none';
-  }, d);
+  markerPopup.classList.add('marker-popup--visible');
+  if (d > 0) {
+    setTimeout(() => {
+      markerPopup.classList.remove('marker-popup--visible');
+    }, d);
+  }
 }
 
 // Initialisierung
@@ -195,17 +194,14 @@ function init() {
   cameraEl = document.getElementById('camera');
   console.log('sceneEl, renderer, cameraEl:', sceneEl, renderer, cameraEl);
 
-  // Warte, bis die Kamera da ist
   const threeCam = cameraEl.getObject3D('camera');
   if (!threeCam) {
     console.warn('Kamera noch nicht da, warte 100 ms …');
     return setTimeout(init, 100);
   }
-  // Jetzt global speichern — sonst bleibt threeCamera undefined!
   threeCamera = threeCam;
   console.log('threeCamera gesetzt:', threeCamera);
 
-  // Controls korrekt mit threeCamera initialisieren
   controls = new DeviceOrientationControls(threeCamera);
   console.log('DeviceOrientationControls initialisiert');
 
@@ -221,15 +217,12 @@ function init() {
 
   cameraEl.addEventListener('gpsupdate', onGpsUpdate);
 
-  // Fix: Bessere Resize-Behandlung, in eine eigene Funktion ausgelagert
   window.addEventListener("resize", () => {
     if (isIOS) {
-      // Längere Verzögerung für iOS, um sicherzustellen, dass die Rotation abgeschlossen ist
       setTimeout(() => {
         console.log('iOS resize handler with delay');
         updateSceneDimensions();
         
-        // Bei drastischen Größenänderungen Marker neu aufbauen
         const widthChange = Math.abs(window.innerWidth - previousWidth) / previousWidth;
         const heightChange = Math.abs(window.innerHeight - previousHeight) / previousHeight;
         
@@ -237,7 +230,6 @@ function init() {
           console.log('Significant size change detected, rebuilding markers');
           rebuildAllMarkers();
         } else {
-          // Nur aktualisieren
           if (markers.length > 0) {
             markers.forEach(m => m.update());
           }
@@ -251,7 +243,6 @@ function init() {
     }
   });
   
-  // Initiale Dimensionen speichern
   let previousWidth = window.innerWidth;
   let previousHeight = window.innerHeight;
 
@@ -358,7 +349,7 @@ function addMarker(data, i) {
         setActive(i);
         showPopup('Ziel aktualisiert!', 5000);
       } else {
-        showPopup(data.popupContent, 5000);
+        showPopup(data.popupContent, 50000);
       }
     },
     deviceOrientationControl: controls
