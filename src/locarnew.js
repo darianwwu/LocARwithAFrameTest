@@ -456,6 +456,9 @@ class rt extends K {
     }, this.getBeta = function() {
       const { deviceOrientation: s } = e;
       return s && s.beta ? C.degToRad(s.beta) : 0;
+    }, this.getGamma = function() {
+      const { deviceOrientation: s } = e;
+      return s && s.gamma ? C.degToRad(s.gamma) : 0;
     }
     const isiOSWithReq =
     window.DeviceOrientationEvent !== void 0 &&

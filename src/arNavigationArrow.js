@@ -104,8 +104,7 @@ export class ARNavigationArrow {
       const tempQuat = new THREE.Quaternion();
       const alpha = this.deviceOrientationControl.getAlpha();
       const beta = this.deviceOrientationControl.getBeta();
-      // Hier ist die problematische Stelle:
-      const gamma = this.deviceOrientationControl.deviceOrientation?.gamma ?? 0;
+      const gamma = this.deviceOrientationControl.getGamma();
       const orient = angle || 0;
       this.setObjectQuaternion(tempQuat, alpha, beta, gamma, orient);
     }

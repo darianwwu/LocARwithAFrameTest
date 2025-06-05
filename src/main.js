@@ -28,110 +28,13 @@ let markers = [];
 let targetCoords = [];
 let indexActive = 0;
 const currentCoords = { latitude: null, longitude: null };
-let screenOrientation = { 
-  type: screen.orientation?.type || 'portrait-primary', 
-  angle: screen.orientation?.angle || 0 
-};
+let screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
 const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i);
 
-// Debug-Funktion zum Rekonstruieren der Marker
-function rebuildAllMarkers() {
-  console.log('Rebuilding all markers...');
-  
-  // Alte Marker entfernen
-  markers.forEach(marker => {
-    if (marker.markerObject && marker.markerObject.parent) {
-      marker.markerObject.parent.remove(marker.markerObject);
-    }
-    marker.dispose();
-  });
-  
-  markers = [];
-  
-  // Marker neu erstellen
-  addAllMarkers();
-  setActive(indexActive);
-  
-  console.log('Markers rebuilt, count:', markers.length);
-}
-
 // UI-Event-Handler
-console.log('Binding UI events');
 closeButton.addEventListener('click', () => {
   markerPopup.classList.remove('marker-popup--visible');
 });
-
-// iOS-spezifischer Orientierungs-Fix
-let lastOrientation = window.orientation || 0;
-
-window.addEventListener('load', () => {
-  // Orientierungsänderungen überwachen und darauf reagieren
-  if (screen.orientation) {
-    screen.orientation.addEventListener("change", (event) => {
-      console.log('Orientation changed:', event.target.type, event.target.angle);
-      screenOrientation.type = event.target.type;
-      screenOrientation.angle = event.target.angle;
-      
-      if (isIOS) {
-        // Verzögerte Neuberechnung für iOS
-        setTimeout(() => {
-          updateSceneDimensions();
-          rebuildAllMarkers();
-        }, 300);
-      }
-    });
-  } else {
-    // Fallback für Browser/Geräte ohne screen.orientation
-    window.addEventListener('orientationchange', () => {
-      // Für ältere iOS-Versionen: window.orientation gibt Gradwerte zurück (0, 90, -90, 180)
-      const currentOrientation = window.orientation || 0;
-      let type = 'portrait-primary';
-      if (currentOrientation === 90) type = 'landscape-primary';
-      else if (currentOrientation === -90) type = 'landscape-secondary';
-      
-      console.log('Old-style orientation changed:', type, currentOrientation);
-      screenOrientation.type = type;
-      screenOrientation.angle = currentOrientation;
-      
-      if (isIOS && lastOrientation !== currentOrientation) {
-        lastOrientation = currentOrientation;
-        setTimeout(() => {
-          updateSceneDimensions();
-          rebuildAllMarkers();
-        }, 300);
-      }
-    });
-  }
-});
-
-// Aktualisiert das AR-Rendering nach Orientierungsänderungen
-function updateSceneDimensions() {
-  if (!renderer || !threeCamera) return;
-  
-  console.log('Updating scene dimensions');
-  
-  // Sicherstellen, dass wir die aktuelle Fenstergröße verwenden
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  
-  
-  // Renderer und Kamera aktualisieren
-  renderer.setSize(width, height);
-  threeCamera.aspect = width / height;
-  threeCamera.updateProjectionMatrix();
-  
-  // A-Frame updaten
-  if (sceneEl && typeof sceneEl.resize === 'function') {
-    console.log('Resizing A-Frame scene');
-    sceneEl.resize();
-  }
-  
-  // Locar neuberechnen, falls vorhanden
-  if (locar && typeof locar.updateProjection === 'function') {
-    console.log('Updating locar projection');
-    locar.updateProjection();
-  }
-}
 
 btnAdd.addEventListener('click', () => {
   console.log('Add marker clicked', lonInput.value, latInput.value);
@@ -145,7 +48,6 @@ btnAdd.addEventListener('click', () => {
 });
 
 btnTest.addEventListener('click', () => {
-  //console.log('Test marker button clicked');
   const tests = [
     { longitude:7.651058, latitude:51.935260, popupContent:'Polter 1…' },
     { longitude:7.651110, latitude:51.933416, popupContent:'Polter 2…' },
@@ -153,17 +55,7 @@ btnTest.addEventListener('click', () => {
     { longitude:7.658851, latitude:51.934513, popupContent:'Lichtung 2…' },
     { longitude:7.648327, latitude:51.934420, popupContent:'Sonstiger POI 1…' }
   ];
-  /** 
-  const tests = [
-    { longitude:7.593485, latitude:51.938087, popupContent:'Polter 1…' },
-    { longitude:7.590000, latitude:51.933416, popupContent:'Polter 2…' },
-    { longitude:7.600000, latitude:51.939496, popupContent:'Lichtung 1…' },
-    { longitude:7.595000, latitude:51.940513, popupContent:'Lichtung 2…' },
-    { longitude:7.597500, latitude:51.934420, popupContent:'Sonstiger POI 1…' }
-  ];
-  */
   targetCoords.push(...tests);
-  //console.log('Added test markers, count:', targetCoords.length);
   showPopup('5 Marker hinzugefügt!', 1500);
 });
 
@@ -195,7 +87,11 @@ btnStart.addEventListener('click', async() => {
   console.log('Overlay removed, AR container shown');
 });
 
-// Hilfsfunktion für Popup
+/**
+ * Hilfsfunktion, um ein Popup anzuzeigen.
+ * @param {*} text Der Text, der im Popup angezeigt werden soll
+ * @param {*} d Die Dauer in Millisekunden, nach der das Popup automatisch geschlossen wird (0 für kein automatisches Schließen)
+ */
 function showPopup(text, d) {
   markerPopupText.textContent = text;
   markerPopup.classList.add('marker-popup--visible');
@@ -206,7 +102,10 @@ function showPopup(text, d) {
   }
 }
 
-// Initialisierung
+/**
+ * Initialisiert die AR-Szene, setzt die Kamera und registriert Event-Listener. Registriert den Window-Resize-Handler für die Kamera und Renderer (wichtig für Landscape Korrektur auf iOS).
+ * @returns 
+ */
 function init() {
   console.log('init() aufgerufen');
   sceneEl  = document.querySelector('a-scene');
@@ -221,6 +120,22 @@ function init() {
   }
   threeCamera = threeCam;
   console.log('threeCamera gesetzt:', threeCamera);
+
+  window.addEventListener("resize", () => {
+    if (isIOS) {
+      setTimeout(() => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        threeCamera.aspect = window.innerWidth / window.innerHeight;
+        threeCamera.updateProjectionMatrix();
+      }, 200);
+    } else {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      threeCamera.aspect = window.innerWidth / window.innerHeight;
+      console.log('Kamera aktualisiert vorher: ', threeCamera);
+      threeCamera.updateProjectionMatrix();
+      console.log('Kamera aktualisiert nachher: ', threeCamera);
+    }
+  });
 
   controls = new DeviceOrientationControls(threeCamera, {
     smoothingFactor: 0.05,
@@ -239,36 +154,6 @@ function init() {
   }
 
   cameraEl.addEventListener('gpsupdate', onGpsUpdate);
-
-  window.addEventListener("resize", () => {
-    if (isIOS) {
-      setTimeout(() => {
-        console.log('iOS resize handler with delay');
-        updateSceneDimensions();
-        
-        const widthChange = Math.abs(window.innerWidth - previousWidth) / previousWidth;
-        const heightChange = Math.abs(window.innerHeight - previousHeight) / previousHeight;
-        
-        if (widthChange > 0.2 || heightChange > 0.2) {
-          console.log('Significant size change detected, rebuilding markers');
-          rebuildAllMarkers();
-        } else {
-          if (markers.length > 0) {
-            markers.forEach(m => m.update());
-          }
-        }
-        
-        previousWidth = window.innerWidth;
-        previousHeight = window.innerHeight;
-      }, 300);
-    } else {
-      updateSceneDimensions();
-    }
-  });
-  
-  let previousWidth = window.innerWidth;
-  let previousHeight = window.innerHeight;
-
   renderer.setAnimationLoop(animate);
   console.log('Animation loop gestartet');
 }
@@ -306,7 +191,9 @@ function onGpsUpdate(e) {
   updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay);
 }
 
-// Haupt-Loop
+/**
+ * Haupt-Animationsschleife, die regelmäßig aufgerufen wird, aktualisiert die Eigenschaften der AR-Elemente.
+ */
 function animate() {
   if (controls) controls.update();
   
@@ -330,7 +217,9 @@ function animate() {
   }
 }
 
-// Compass erzeugen
+/**
+ * Fügt das Kompass UI zur AR-Szene hinzu.
+ */
 function addCompass() {
   console.log('addCompass()');
   compass = new CompassGUI({
@@ -341,7 +230,9 @@ function addCompass() {
   });
 }
 
-// Navigation Arrow
+/**
+ * Fügt den Navigationspfeil zur AR-Szene mit ensprechendem glb Modell hinzu.
+ */
 function addArrow() {
   console.log('addArrow()');
   arrow = new ARNavigationArrow({
@@ -357,7 +248,11 @@ function addArrow() {
   arrow.initArrow('./glbmodell/Pfeil5.glb');
 }
 
-// Marker erzeugen
+/**
+ * Fügt einen Marker zur AR-Szene hinzu und registriert einen Klick-Handler.
+ * @param {*} data Daten für den Marker, einschließlich Latitude, Longitude und Popup-Inhalt
+ * @param {*} i Index des Markers im targetCoords Array
+ */
 function addMarker(data, i) {
   console.log('addMarker', i, data);
   const marker = new TargetMarker({
@@ -366,13 +261,12 @@ function addMarker(data, i) {
     markerCoords: { latitude: data.latitude, longitude: data.longitude },
     isIOS,
     getScreenOrientation: () => screenOrientation,
-    getCurrentCoords: () => currentCoords,
     onClick: () => {
       if (i !== indexActive) {
         setActive(i);
         showPopup('Ziel aktualisiert!', 5000);
       } else {
-        showPopup(data.popupContent, 50000);
+        showPopup(data.popupContent, 0);
       }
     },
     deviceOrientationControl: controls
@@ -382,13 +276,18 @@ function addMarker(data, i) {
   console.log('Markers array length:', markers.length);
 }
 
-// Alle Marker hinzufügen
+/**
+ * Ruft für alle Marker aus dem Array targetCoords die addMarker-Funktion auf.
+ */
 function addAllMarkers() {
   console.log('addAllMarkers, count:', targetCoords.length);
   targetCoords.forEach((d, i) => addMarker(d, i));
 }
 
-// Aktiven Marker setzen
+/**
+ * Setzt den aktiven Marker und aktualisiert die Marker-Bildquellen.
+ * @param {*} i der Index des zu aktiv werdenden Markers
+ */
 function setActive(i) {
   console.log('setActive marker:', i);
   indexActive = i;

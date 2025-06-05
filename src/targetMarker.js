@@ -1,16 +1,7 @@
 import 'three';
 
 export class TargetMarker {
-  constructor({
-    locar,
-    camera,
-    markerCoords,
-    isIOS,
-    getScreenOrientation,
-    onClick,
-    deviceOrientationControl,
-    getCurrentCoords    // <— neu
-  }) {
+  constructor({locar, camera, markerCoords, isIOS, getScreenOrientation, onClick, deviceOrientationControl}) {
     this.locar = locar;
     this.camera = camera;
     this.markerCoords = markerCoords;
@@ -18,7 +9,6 @@ export class TargetMarker {
     this.getScreenOrientation = getScreenOrientation;
     this.onClick = onClick;
     this.deviceOrientationControl = deviceOrientationControl;
-    this.getCurrentCoords = getCurrentCoords; // <— speichern
     this.markerObject = null;
     this.markerAdded = false;
     this.originalMarkerPosition = new THREE.Vector3();
@@ -57,86 +47,53 @@ export class TargetMarker {
   }
 
   update() {
-    if (!this.markerObject || !this.markerAdded) return;
+  if (!this.markerObject) return;
 
-    const { type, angle } = this.getScreenOrientation();
-
-    // Ziel in Weltkoordinaten
-    let lonlatTarget;
-    try {
-      lonlatTarget = this.locar.lonLatToWorldCoords(
-        this.markerCoords.longitude,
-        this.markerCoords.latitude
-      );
-    } catch (e) {
-      if (e === "No initial position determined") return;
-      else throw e;
-    }
-    const targetWorldPos = new THREE.Vector3(
-      lonlatTarget[0],
-      1.5,
-      lonlatTarget[1]
-    );
-
-    // Nutzer in Weltkoordinaten
-    const { latitude: lat, longitude: lon } = this.getCurrentCoords();
-    if (lat == null || lon == null) {
-      // noch kein GPS-Fix
+  const { type, angle } = this.getScreenOrientation();
+  
+  let lonlatTarget;
+  try {
+    lonlatTarget = this.locar.lonLatToWorldCoords(this.markerCoords.longitude, this.markerCoords.latitude);
+  } catch (e) {
+    if (e === "No initial position determined") {
+      // Wenn noch keine Initialposition vorhanden ist, Update überspringen
       return;
-    }
-    let lonlatUser;
-    try {
-      lonlatUser = this.locar.lonLatToWorldCoords(lon, lat);
-    } catch {
-      return;
-    }
-    const userWorldPos = new THREE.Vector3(
-      lonlatUser[0],
-      1.5,
-      lonlatUser[1]
-    );
-
-    // iOS Landscape‑Branch
-    const isLandscape = type && type.startsWith("landscape");
-    const devOri = this.deviceOrientationControl.deviceOrientation || {};
-    if (this.isIOS && isLandscape) {
-      // 1) Quaternion aus Alpha/Beta/Gamma
-      const tempQuat = new THREE.Quaternion();
-      const alpha = this.deviceOrientationControl.getAlpha() || 0;
-      const beta = this.deviceOrientationControl.getBeta() || 0;
-      const gamma = devOri.gamma || 0;
-      const orient = angle || 0;
-      this.setObjectQuaternion(tempQuat, alpha, beta, gamma, orient);
-
-      // 2) Sensor-Y‑Winkel
-      const sensorY = new THREE.Euler().setFromQuaternion(tempQuat, "YXZ").y;
-
-      // 3) Kompass‑Heading
-      const compassHeading = devOri.webkitCompassHeading;
-      if (compassHeading == null) {
-        // kein Heading, Fallback auf Weltposition
-        this.markerObject.position.copy(targetWorldPos);
-        return;
-      }
-      const compassY = THREE.MathUtils.degToRad(360 - compassHeading);
-
-      // 4) Delta und 90°-Kompensation
-      const delta = compassY - sensorY;
-      // 90° Korrektur rückgängig machen (Portrait→Landscape)
-      const correction = THREE.MathUtils.degToRad(-90);
-      const totalRot = delta + correction;
-
-      // 5) Rotieren um userWorldPos
-      const markerPos = targetWorldPos.clone()
-        .sub(userWorldPos)
-        .applyAxisAngle(new THREE.Vector3(0, 1, 0), totalRot)
-        .add(userWorldPos);
-
-      this.markerObject.position.copy(markerPos);
     } else {
-      // Portrait oder Android: Originalposition
-      this.markerObject.position.copy(this.originalMarkerPosition);
+      throw e;
     }
+  }
+  
+  const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
+  
+  if (this.isIOS && (type.startsWith('landscape')) && this.deviceOrientationControl) {
+    if (this.originalMarkerPosition.length() === 0) {
+      this.originalMarkerPosition.copy(this.markerObject.position);
+    }
+    
+    const tempQuat = new THREE.Quaternion();
+    const alpha = this.deviceOrientationControl.getAlpha();
+    const beta = this.deviceOrientationControl.getBeta();
+    const gamma = this.deviceOrientationControl.getGamma();
+    const orient = angle || 0;
+    this.setObjectQuaternion(tempQuat, alpha, beta, gamma, orient);
+    
+    const tempEuler = new THREE.Euler().setFromQuaternion(tempQuat, 'YXZ');
+    const sensorY = tempEuler.y;
+    
+    const compassHeading = this.deviceOrientationControl.deviceOrientation?.webkitCompassHeading;
+    if (compassHeading !== undefined) {
+      const compassY = THREE.MathUtils.degToRad(360 - compassHeading);
+      const delta = compassY - sensorY;
+      
+      const markerPos = new THREE.Vector3(targetWorldPos.x, 1.5, targetWorldPos.z);
+      markerPos.sub(this.camera.position);
+      markerPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), delta);
+      markerPos.add(this.camera.position);
+      this.markerObject.position.copy(markerPos);
+    }
+  } else {
+    this.markerObject.position.copy(this.originalMarkerPosition);
+  }
   }
 
   handleClick(event) {
