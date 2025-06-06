@@ -68,47 +68,28 @@ export class ARNavigationArrow {
 
   // Aktualisiert die Position und Rotation des AR-Navigationspfeils
   update() {
-    if (!this.arrowObject || this.currentCoords.longitude === null || this.currentCoords.latitude === null) {
-      return;
-    }
-
-    const { type, angle } = this.getScreenOrientation();
-
-    // Umrechnung der Zielkoordinaten in Weltkoordinaten
-    const targetCoordsArray = this.getTargetCoords();
-    const activeIndex = this.getIndexActiveMarker();
-
-    const lonlatTarget = this.locar.lonLatToWorldCoords(targetCoordsArray[activeIndex].longitude, targetCoordsArray[activeIndex].latitude);
-    const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
-
-    // Umrechnung der Nutzerkoordinaten in Weltkoordinaten
-    const lonlatUser = this.locar.lonLatToWorldCoords(this.currentCoords.longitude, this.currentCoords.latitude);
-    const userWorldPos = new THREE.Vector3(lonlatUser[0], 1.5, lonlatUser[1]);
-
-    // Berechnung der Richtung vom Nutzer zum Ziel
-    const direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
-    const targetAngle = Math.atan2(direction.x, direction.z);
-
-    // Ermitteln des Nutzer-Headings inkl. eventueller Kompensation
-    let userHeading = this.deviceOrientationControl.getAlpha();
-    const compensation = angle * (Math.PI / 180);
-    userHeading -= compensation;
-
-    let relativeAngle = targetAngle - userHeading;
-    relativeAngle += Math.PI;
-    relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
-    this.arrowObject.rotation.set(0, relativeAngle, 0);
-    
-    // iOS-spezifische Anpassungen, wenn im Landscape-Modus
-    if (this.isIOS && (type.startsWith('landscape'))) {
-      const tempQuat = new THREE.Quaternion();
-      const alpha = this.deviceOrientationControl.getAlpha();
-      const beta = this.deviceOrientationControl.getBeta();
-      const gamma = this.deviceOrientationControl.getGamma();
-      const orient = angle || 0;
-      this.setObjectQuaternion(tempQuat, alpha, beta, gamma, orient);
-    }
+  if (!this.arrowObject || this.currentCoords.longitude === null || this.currentCoords.latitude === null) {
+    return;
   }
+
+  const targetCoordsArray = this.getTargetCoords();
+  const activeIndex = this.getIndexActiveMarker();
+  const lonlatTarget = this.locar.lonLatToWorldCoords(targetCoordsArray[activeIndex].longitude, targetCoordsArray[activeIndex].latitude);
+  const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
+  const lonlatUser = this.locar.lonLatToWorldCoords(this.currentCoords.longitude, this.currentCoords.latitude);
+  const userWorldPos = new THREE.Vector3(lonlatUser[0], 1.5, lonlatUser[1]);
+
+  const direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
+  const targetAngle = Math.atan2(direction.x, direction.z);
+
+  // Verwende die korrigierte Heading-Methode (in Radians)
+  const userHeading = this.deviceOrientationControl.getCorrectedHeading() * (Math.PI / 180);
+
+  let relativeAngle = targetAngle - userHeading;
+  relativeAngle += Math.PI;
+  relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
+  this.arrowObject.rotation.set(0, relativeAngle, 0);
+}
 
   setObjectQuaternion(quaternion, alpha, beta, gamma, orient) {
     const zee = new THREE.Vector3(0, 0, 1);

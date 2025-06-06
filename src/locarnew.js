@@ -336,6 +336,10 @@ class rt extends K {
       );
     }, I = function() {
       e.screenOrientation = window.orientation || 0;
+      if (z) {
+        e.orientationOffset = e.screenOrientation === 90 ? -Math.PI/2 : 
+                            e.screenOrientation === -90 ? Math.PI/2 : 0;
+      }
     }, R = function(s, o, a, u, h) {
       N.set(a, o, -u, "YXZ"), s.setFromEuler(N), s.multiply(et), s.multiply(tt.setFromAxisAngle(J, -h));
     };
@@ -388,58 +392,65 @@ class rt extends K {
         g
       ), e.enabled = !1, e.initialOffset = !1, e.deviceOrientation = null;
     }, this.update = function({ theta: s = 0 } = { theta: 0 }) {
-      if (e.enabled === !1) return;
-      const o = e.deviceOrientation;
-      if (o) {
-        let a = o.alpha ? C.degToRad(o.alpha) + e.alphaOffset : 0, u = o.beta ? C.degToRad(o.beta) : 0, h = o.gamma ? C.degToRad(o.gamma) : 0;
-        const _ = e.screenOrientation ? C.degToRad(e.screenOrientation) : 0;
-        if (z) {
-          const v = new F();
-          R(v, a, u, h, _);
-          const w = new U().setFromQuaternion(
-            v,
-            "YXZ"
-          );
-          console.log(w.x, w.y, w.z), w.y = C.degToRad(
-            360 - o.webkitCompassHeading
-          ), v.setFromEuler(w), e.object.quaternion.copy(v);
-        } else {
-          if (this.smoothingFactor < 1) {
-            if (this.lastOrientation) {
-              const v = this.smoothingFactor;
-              a = this._getSmoothedAngle(
-                a,
-                this.lastOrientation.alpha,
-                v
-              ), u = this._getSmoothedAngle(
-                u + Math.PI,
-                this.lastOrientation.beta,
-                v
-              ), h = this._getSmoothedAngle(
-                h + this.HALF_PI,
-                this.lastOrientation.gamma,
-                v,
-                Math.PI
-              );
-            } else
-              u += Math.PI, h += this.HALF_PI;
-            this.lastOrientation = {
-              alpha: a,
-              beta: u,
-              gamma: h
-            };
-          }
-          R(
-            e.object.quaternion,
-            a + s,
-            this.smoothingFactor < 1 ? u - Math.PI : u,
-            this.smoothingFactor < 1 ? h - this.HALF_PI : h,
-            _
-          );
-        }
-        8 * (1 - d.dot(e.object.quaternion)) > c && (d.copy(e.object.quaternion), e.dispatchEvent(it));
+    if (e.enabled === !1) return;
+    const o = e.deviceOrientation;
+    if (o) {
+      let a = o.alpha ? C.degToRad(o.alpha) + e.alphaOffset : 0, u = o.beta ? C.degToRad(o.beta) : 0, h = o.gamma ? C.degToRad(o.gamma) : 0;
+      const _ = e.screenOrientation ? C.degToRad(e.screenOrientation) : 0;
+      
+      if (this.smoothingFactor < 1) {
+        if (this.lastOrientation) {
+          const v = this.smoothingFactor;
+          a = this._getSmoothedAngle(a, this.lastOrientation.alpha, v), 
+          u = this._getSmoothedAngle(u + Math.PI, this.lastOrientation.beta, v), 
+          h = this._getSmoothedAngle(h + this.HALF_PI, this.lastOrientation.gamma, v, Math.PI);
+        } else
+          u += Math.PI, h += this.HALF_PI;
+        this.lastOrientation = { alpha: a, beta: u, gamma: h };
       }
-    }, this._orderAngle = function(s, o, a = this.TWO_PI) {
+      
+      if (z) {
+        const v = new F();
+        R(v, a, this.smoothingFactor < 1 ? u - Math.PI : u, this.smoothingFactor < 1 ? h - this.HALF_PI : h, _);
+        const w = new U().setFromQuaternion(v, "YXZ");
+        
+        let compassY = C.degToRad(360 - o.webkitCompassHeading);
+        if (this.smoothingFactor < 1 && this.lastCompassY !== void 0) {
+          compassY = this._getSmoothedAngle(compassY, this.lastCompassY, this.smoothingFactor);
+        }
+        this.lastCompassY = compassY;
+        
+        // iOS Landscape-Korrektur
+        w.y = compassY + (e.orientationOffset || 0);
+        v.setFromEuler(w), e.object.quaternion.copy(v);
+      } else {
+        R(e.object.quaternion, a + s, this.smoothingFactor < 1 ? u - Math.PI : u, this.smoothingFactor < 1 ? h - this.HALF_PI : h, _);
+      }
+      8 * (1 - d.dot(e.object.quaternion)) > c && (d.copy(e.object.quaternion), e.dispatchEvent(it));
+    }
+  }, this.getCorrectedHeading = function() {
+    const { deviceOrientation: o } = e;
+    if (!o) return 0;
+    
+    let heading = 0;
+    
+    if (z) {
+      // iOS: webkitCompassHeading verwenden
+      heading = 360 - o.webkitCompassHeading;
+      // Landscape-Korrektur hinzufügen
+      if (e.orientationOffset) {
+        heading += e.orientationOffset * (180 / Math.PI);
+        heading = (heading + 360) % 360;
+      }
+    } else {
+      // Android: Alpha verwenden
+      heading = o.alpha ? o.alpha + e.alphaOffset * (180 / Math.PI) : 0;
+      if (heading < 0) heading += 360;
+    }
+    
+    return heading;
+  },
+   this._orderAngle = function(s, o, a = this.TWO_PI) {
       return o > s && Math.abs(o - s) < a / 2 || s > o && Math.abs(o - s) > a / 2 ? { left: s, right: o } : { left: o, right: s };
     }, this._getSmoothedAngle = function(s, o, a, u = this.TWO_PI) {
       const h = this._orderAngle(s, o, u), _ = h.left, v = h.right;
@@ -465,10 +476,8 @@ class rt extends K {
     typeof window.DeviceOrientationEvent.requestPermission === "function";
 
     if (isiOSWithReq && this.enablePermissionDialog) {
-    // iOS + Dialog erwünscht → altes Popup-Verhalten
     this.initPermissionDialog();
     } else if (!isiOSWithReq) {
-    // Kein iOS mit requestPermission → direkt connect()
     this.connect();
     }
   }

@@ -49,14 +49,11 @@ export class TargetMarker {
   update() {
   if (!this.markerObject) return;
 
-  const { type, angle } = this.getScreenOrientation();
-  
   let lonlatTarget;
   try {
     lonlatTarget = this.locar.lonLatToWorldCoords(this.markerCoords.longitude, this.markerCoords.latitude);
   } catch (e) {
     if (e === "No initial position determined") {
-      // Wenn noch keine Initialposition vorhanden ist, Update überspringen
       return;
     } else {
       throw e;
@@ -64,37 +61,8 @@ export class TargetMarker {
   }
   
   const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
-  
-  if (this.isIOS && (type.startsWith('landscape')) && this.deviceOrientationControl) {
-    if (this.originalMarkerPosition.length() === 0) {
-      this.originalMarkerPosition.copy(this.markerObject.position);
-    }
-    
-    const tempQuat = new THREE.Quaternion();
-    const alpha = this.deviceOrientationControl.getAlpha();
-    const beta = this.deviceOrientationControl.getBeta();
-    const gamma = this.deviceOrientationControl.getGamma();
-    const orient = angle || 0;
-    this.setObjectQuaternion(tempQuat, alpha, beta, gamma, orient);
-    
-    const tempEuler = new THREE.Euler().setFromQuaternion(tempQuat, 'YXZ');
-    const sensorY = tempEuler.y;
-    
-    const compassHeading = this.deviceOrientationControl.deviceOrientation?.webkitCompassHeading;
-    if (compassHeading !== undefined) {
-      const compassY = THREE.MathUtils.degToRad(360 - compassHeading);
-      const delta = compassY - sensorY;
-      
-      const markerPos = new THREE.Vector3(targetWorldPos.x, 1.5, targetWorldPos.z);
-      markerPos.sub(this.camera.position);
-      markerPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), delta);
-      markerPos.add(this.camera.position);
-      this.markerObject.position.copy(markerPos);
-    }
-  } else {
-    this.markerObject.position.copy(this.originalMarkerPosition);
-  }
-  }
+  this.markerObject.position.copy(targetWorldPos);
+}
 
   handleClick(event) {
   if (!this.markerAdded || !this.markerObject) return;
