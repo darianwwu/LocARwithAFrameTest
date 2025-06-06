@@ -50,7 +50,6 @@ AFRAME.registerComponent("locar-camera", {
       }
     });
     if (this._isMobile()) {
-      // Hier ziehen wir jetzt DeviceOrientationControlsOptional (ohne eigenes Popup)
       this.deviceOrientationControls = new DeviceOrientationControls(
         this.el.object3D,
         { smoothingFactor: this.data.smoothingFactor, enablePermissionDialog: false }

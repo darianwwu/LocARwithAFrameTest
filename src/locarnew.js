@@ -420,7 +420,6 @@ class rt extends K {
         }
         this.lastCompassY = compassY;
         
-        // iOS Landscape-Korrektur
         w.y = compassY + (e.orientationOffset || 0);
         v.setFromEuler(w), e.object.quaternion.copy(v);
       } else {
@@ -435,15 +434,12 @@ class rt extends K {
     let heading = 0;
     
     if (z) {
-      // iOS: webkitCompassHeading verwenden
       heading = 360 - o.webkitCompassHeading;
-      // Landscape-Korrektur hinzufügen
       if (e.orientationOffset) {
         heading += e.orientationOffset * (180 / Math.PI);
         heading = (heading + 360) % 360;
       }
     } else {
-      // Android: Alpha verwenden
       heading = o.alpha ? o.alpha + e.alphaOffset * (180 / Math.PI) : 0;
       if (heading < 0) heading += 360;
     }

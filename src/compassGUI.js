@@ -9,12 +9,11 @@ export class CompassGUI {
   update() {
   if (!this.deviceOrientationControl.deviceOrientation) return;
   
-  // Verwende die korrigierte Heading-Methode
   const heading = this.deviceOrientationControl.getCorrectedHeading();
   
-  // UI Elemente aktualisieren (ohne weitere Korrekturen)
+  // UI Elemente aktualisieren
   this.compassArrow.style.transform = `rotate(${heading}deg)`;
   this.compassText.innerText = `${Math.round(heading)}°`;
   
-}
+  }
 }

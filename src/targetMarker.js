@@ -26,7 +26,7 @@ export class TargetMarker {
     const markerTexture = textureLoader.load(markerImageUrl);
     const markerMaterial = new THREE.SpriteMaterial({ map: markerTexture });
     this.markerObject = new THREE.Sprite(markerMaterial);
-    this.markerObject.scale.set(10, 10, 1);
+    this.markerObject.scale.set(12, 12, 1);
     this.locar.add(
       this.markerObject,
       this.markerCoords.longitude,
@@ -107,23 +107,6 @@ export class TargetMarker {
     const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     
     return cameraForward.dot(cameraToObject) > 0;
-  }
-
-
-  setObjectQuaternion(quaternion, alpha, beta, gamma, orient) {
-    const zee = new THREE.Vector3(0, 0, 1);
-    const euler = new THREE.Euler();
-    const q0 = new THREE.Quaternion();
-    const q1 = new THREE.Quaternion(
-      -Math.sqrt(0.5),
-      0,
-      0,
-      Math.sqrt(0.5)
-    );
-    euler.set(beta, alpha, -gamma, "YXZ");
-    quaternion.setFromEuler(euler);
-    quaternion.multiply(q1);
-    quaternion.multiply(q0.setFromAxisAngle(zee, -orient));
   }
 
   dispose() {

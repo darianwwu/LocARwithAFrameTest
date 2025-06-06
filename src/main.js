@@ -19,6 +19,8 @@ const markerPopup      = document.getElementById('markerPopup');
 const markerPopupText  = document.getElementById('markerPopupText');
 const closeButton      = document.getElementById('popupClose');
 const distanceOverlay  = document.getElementById('distance-overlay');
+const gpsIndicator      = document.querySelector('.gps-indicator');
+const gpsAccuracyValue  = document.querySelector('.gps-accuracy-value');
 
 // State
 let sceneEl, renderer, cameraEl, threeCamera;
@@ -59,7 +61,7 @@ btnTest.addEventListener('click', async () => {
     currentCoords.longitude = pos.coords.longitude;
     console.log('Aktuelle Koordinaten gesetzt:', currentCoords);
 
-    // Erzeuge 5 Testpunkte mit einfachen Offsets in unterschiedlichen Entfernungen
+    // Erzeuge 5 Testpunkte mit einfachen Offsets in unterschiedlichen Entfernungen und Richtungen
     const baseLat = currentCoords.latitude;
     const baseLon = currentCoords.longitude;
 
@@ -88,16 +90,14 @@ btnStart.addEventListener('click', async() => {
     try {
       const result = await DeviceOrientationEvent.requestPermission();
       if (result === "granted") {
-        // 2. erst jetzt connect() aufrufen, um Listener zu registrieren
         controls.connect();
       } else {
         alert("Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.");
       }
     } catch (err) {
-      console.error("Permission‐Request schlug fehl:", err);
+      console.error("Permission-Request schlug fehl:", err);
     }
   } else {
-    // Nicht‐iOS oder kein requestPermission API: direkt connecten
     controls.connect();
   }
   overlayContainer.remove();
@@ -185,8 +185,25 @@ function onGpsUpdate(e) {
   currentCoords.longitude = pos.longitude;
   console.log('currentCoords:', currentCoords);
 
+  const accuracy = pos.accuracy; // in Metern
+  if (gpsAccuracyValue && gpsIndicator) {
+    // Text aktualisieren:
+    gpsAccuracyValue.innerText = `~${Math.round(accuracy)}m`;
+
+    // Klasse setzen je nach Schwellenwert:
+    // <5m = high, <15m = medium, sonst low
+    gpsIndicator.classList.remove('gps-indicator--high', 'gps-indicator--medium', 'gps-indicator--low');
+    if (accuracy < 5) {
+      gpsIndicator.classList.add('gps-indicator--high');
+    } else if (accuracy < 15) {
+      gpsIndicator.classList.add('gps-indicator--medium');
+    } else {
+      gpsIndicator.classList.add('gps-indicator--low');
+    }
+  }
+
+  // Alle UI-Elemente hinzufügen
   if (targetCoords.length && markers.length === 0) {
-    console.log('Erster GPS-Fix, UI initialisieren');
     addCompass();
     addArrow();
     addAllMarkers();
@@ -290,7 +307,7 @@ function addMarker(data, i) {
     },
     deviceOrientationControl: controls
   });
-  marker.initMarker('./images/map-marker-schwarz.png');
+  marker.initMarker('./images/map-marker.png');
   markers.push(marker);
   console.log('Markers array length:', markers.length);
 }
@@ -313,8 +330,8 @@ function setActive(i) {
   markers.forEach((m, idx) => {
     m.updateMarkerImage(
       idx === i
-        ? './images/map-marker.png'
-        : './images/map-marker-schwarz.png'
+        ? './images/map-marker-rot.png'
+        : './images/map-marker.png'
     );
   });
 }

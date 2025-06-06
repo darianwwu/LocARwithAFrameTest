@@ -20,7 +20,7 @@
     </div>
   </div>
 
-  <!-- Overlay Container (Form) -->
+  <!-- Overlay Container -->
   <div id="overlayContainer" class="overlay-container">
     <div class="form-container">
       <div class="form-header">
@@ -35,8 +35,8 @@
           id="longitude"
           class="form-input"
           step="0.000001"
-          value="7.651058"
-          placeholder="z.B. 7.651058"
+          value="7.600000"
+          placeholder="z.B. 7.600000"
         />
       </div>
 
@@ -47,8 +47,8 @@
           id="latitude"
           class="form-input"
           step="0.000001"
-          value="51.935260"
-          placeholder="z.B. 51.935260"
+          value="51.900000"
+          placeholder="z.B. 51.900000"
         />
       </div>
 
@@ -63,11 +63,11 @@
     </div>
   </div>
 
-  <!-- AR Container (mit A-Frame) -->
+  <!-- AR Container -->
   <div id="arContainer" class="ar-container">
     <a-scene
       id="glscene"
-      locar-webcam="idealWidth: 1280; idealHeight: 720"
+      locar-webcam="idealWidth: 3840; idealHeight: 2160"
       device-orientation-permission-ui="enabled: false"
       loading-screen="enabled: false"
     >
@@ -81,7 +81,7 @@
       ></a-camera>
     </a-scene>
 
-    <!-- Marker-Popup (über CSS-Klassen gesteuert) -->
+    <!-- Marker-Popup -->
     <div id="markerPopup" class="marker-popup">
       <p id="markerPopupText" class="marker-popup__text">
         AR-Marker wurde geklickt!
@@ -94,6 +94,13 @@
     <div id="compassContainer" class="compass-container">
       <div id="compassArrow" class="compass-arrow">↑</div>
       <div id="compassText" class="compass-text"></div>
+    </div>
+
+    <div class="gps-accuracy">
+      <div class="gps-indicator gps-indicator--high"></div>
+      <div class="gps-text">
+        GPS: <span class="gps-accuracy-value">~3m</span>
+      </div>
     </div>
   </div>
 
@@ -116,7 +123,6 @@
       markerPopup.classList.remove('marker-popup--visible');
     });
 
-    // showMarkerPopup-Funktion (gleiche Signatur wie im funktionierenden Projekt)
     window.showMarkerPopup = (text, duration = 5000) => {
       const popupText = document.getElementById('markerPopupText');
       popupText.textContent = text;
@@ -130,7 +136,6 @@
     };
   </script>
 
-  <!-- Haupt-Script (Module) -->
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
