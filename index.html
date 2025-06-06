@@ -7,8 +7,8 @@
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
   />
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-UyDFiuoS.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BoUpDe8m.css">
+  <script type="module" crossorigin src="./assets/index-BTTlHNHu.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CMsR5Epo.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -92,9 +92,25 @@
 
     <div id="distance-overlay" class="distance-overlay">0 m</div>
 
-    <div id="compassContainer" class="compass-container">
-      <div id="compassArrow" class="compass-arrow">↑</div>
-      <div id="compassText" class="compass-text"></div>
+    <div class="compass-container">
+      <div class="compass-directions">
+        <div class="compass-direction compass-direction--n">N</div>
+        <div class="compass-direction compass-direction--e">O</div>
+        <div class="compass-direction compass-direction--s">S</div>
+        <div class="compass-direction compass-direction--w">W</div>
+      </div>
+      <div class="compass-arrow" style="transform: rotate(259deg);">
+        <div class="compass-needle"></div>
+        <div class="compass-center"></div>
+      </div>
+      <div class="compass-text">259°</div>
+    </div>
+
+    <div class="gps-accuracy">
+      <div class="gps-indicator gps-indicator--high"></div>
+      <div class="gps-text">
+        GPS: <span class="gps-accuracy-value">±3m</span>
+      </div>
     </div>
   </div>
 
@@ -129,6 +145,56 @@
         }, duration);
       }
     };
+     // Kompass-Animation simulieren
+        function animateCompass() {
+            const compass = document.querySelector('.compass-arrow');
+            const compassText = document.querySelector('.compass-text');
+            let currentRotation = 259;
+            
+            setInterval(() => {
+                // Simuliere leichte Kompass-Bewegung
+                const variation = (Math.random() - 0.5) * 10;
+                currentRotation += variation;
+                
+                // Begrenze die Werte
+                if (currentRotation < 0) currentRotation += 360;
+                if (currentRotation >= 360) currentRotation -= 360;
+                
+                compass.style.transform = `rotate(${currentRotation}deg)`;
+                compassText.textContent = `${Math.round(currentRotation)}°`;
+            }, 2000);
+        }
+
+        // GPS-Genauigkeit simulieren
+        function simulateGPSAccuracy() {
+            const indicator = document.querySelector('.gps-indicator');
+            const accuracyValue = document.querySelector('.gps-accuracy-value');
+            
+            const accuracyLevels = [
+                { range: '±2m', class: 'gps-indicator--high' },
+                { range: '±3m', class: 'gps-indicator--high' },
+                { range: '±5m', class: 'gps-indicator--medium' },
+                { range: '±8m', class: 'gps-indicator--medium' },
+                { range: '±12m', class: 'gps-indicator--low' }
+            ];
+            
+            setInterval(() => {
+                const randomLevel = accuracyLevels[Math.floor(Math.random() * accuracyLevels.length)];
+                
+                // Entferne alle Klassen
+                indicator.classList.remove('gps-indicator--high', 'gps-indicator--medium', 'gps-indicator--low');
+                // Füge neue Klasse hinzu
+                indicator.classList.add(randomLevel.class);
+                // Update Text
+                accuracyValue.textContent = randomLevel.range;
+            }, 3000);
+        }
+
+        // Starte Animationen
+        document.addEventListener('DOMContentLoaded', () => {
+            animateCompass();
+            simulateGPSAccuracy();
+        });
   </script>
 
   <!-- Haupt-Script (Module) -->
