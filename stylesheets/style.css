@@ -437,7 +437,6 @@ canvas {
   transform-origin: center;
 }
 
-
 .compass-tick.minor {
   width: 1px;
   height: 5px;
@@ -445,6 +444,19 @@ canvas {
   left: 50%;
   transform: translateX(-50%);
   background: rgba(255, 255, 255, 0.7);
+}
+
+.tick-ne {
+  transform: translateX(-50%) rotate(45deg);
+}
+.tick-se {
+  transform: translateX(-50%) rotate(135deg);
+}
+.tick-sw {
+  transform: translateX(-50%) rotate(225deg);
+}
+.tick-nw {
+  transform: translateX(-50%) rotate(315deg);
 }
 
 /* Himmelsrichtungen */
