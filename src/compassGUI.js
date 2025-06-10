@@ -5,7 +5,10 @@ export class CompassGUI {
     this.compassText = document.getElementById(compassTextId);
     this.getScreenOrientation = getScreenOrientation;
   }
-  // Aktualisiert die GUI-Elemente (Pfeil und Zahl) des Kompasses
+  /**
+   * Aktualisiert die GUI-Elemente (Pfeil und Zahl) des Kompasses
+   * @returns {void}
+   */
   update() {
   if (!this.deviceOrientationControl.deviceOrientation) return;
   

@@ -17,7 +17,11 @@ export class ARNavigationArrow {
     this.handleClick = this.handleClick.bind(this);
   }
 
-  // Initialisiert den AR-Navigationspfeil
+  /**
+   * Initialisiert den AR-Navigationspfeil mit dem angegebenen Modellpfad.
+   * @param {*} modelPath Pfad zum GLTF-Modell des Pfeils
+   * @param {*} onLoadCallback Callback, der aufgerufen wird, wenn das Modell geladen ist
+   */
   initArrow(modelPath, onLoadCallback = () => {}) {
     this.loader.load(modelPath, (gltf) => {
       this.arrowObject = gltf.scene;
@@ -33,7 +37,10 @@ export class ARNavigationArrow {
     });
   }
 
-  // Methode zum Umschalten der Transparenz
+  /**
+   * Schaltet die Transparenz des Pfeils ein oder aus.
+   * @returns {void}
+   */
   toggleTransparency() {
     if (!this.arrowObject) return;
     const newOpacity = this.isTransparent ? 1 : 0.2;
@@ -48,7 +55,11 @@ export class ARNavigationArrow {
     this.isTransparent = !this.isTransparent;
   }
   
-  // Klick-Handler, der per Raycaster prüft, ob auf den Pfeil geklickt wurde
+  /**
+   * Prüft, ob der Pfeil angeklickt wurde und ruft die toggleTransparency-Funktion auf.
+   * @param {*} event Klick-Event
+   * @returns {void}
+   */
   handleClick(event) {
     if (!this.arrowObject) return;
     
@@ -66,7 +77,10 @@ export class ARNavigationArrow {
     }
   }
 
-  // Aktualisiert die Position und Rotation des AR-Navigationspfeils
+  /**
+   * Aktualisiert die Position und Rotation des Pfeils basierend auf den aktuellen Koordinaten und der Ausrichtung des Geräts.
+   * @returns {void}
+   */
   update() {
   if (!this.arrowObject || this.currentCoords.longitude === null || this.currentCoords.latitude === null) {
     return;
@@ -91,7 +105,9 @@ export class ARNavigationArrow {
   this.arrowObject.rotation.set(0, relativeAngle, 0);
 }
 
-  // Entferne den Klick-Listener, falls der Pfeil entfernt wird
+  /**
+   * Entfernt den AR-Navigationspfeil und alle zugehörigen Event-Listener.
+   */
   dispose() {
     window.removeEventListener("click", this.handleClick);
   }

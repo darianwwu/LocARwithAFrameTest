@@ -21,6 +21,10 @@ export class TargetMarker {
     window.addEventListener("click", this.handleClick);
   }
 
+  /**
+   * Initialisiert den Marker mit dem angegebenen Bild.
+   * @param {*} markerImageUrl Bild-URL
+   */
   initMarker(markerImageUrl) {
     const textureLoader = new THREE.TextureLoader();
     const markerTexture = textureLoader.load(markerImageUrl);
@@ -35,7 +39,10 @@ export class TargetMarker {
     this.markerAdded = true;
     this.originalMarkerPosition.copy(this.markerObject.position);
   }
-
+  /**
+   * Ändert das (Erscheinungs-)Bild des Markers.
+   * @param {*} newImageUrl Bild-URL
+   */
   updateMarkerImage(newImageUrl) {
     const textureLoader = new THREE.TextureLoader();
     textureLoader.load(newImageUrl, (newTexture) => {
@@ -46,7 +53,11 @@ export class TargetMarker {
     });
   }
 
-  update() {
+  /**
+   * Aktualisiert die Position des Markers basierend auf den aktuellen Koordinaten.
+   * @returns {void}
+   */
+  update() {  
   if (!this.markerObject) return;
 
   let lonlatTarget;
@@ -62,8 +73,13 @@ export class TargetMarker {
   
   const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
   this.markerObject.position.copy(targetWorldPos);
-}
+  }
 
+  /**
+   * Nutzt die Raycaster-Logik von Three.js, um zu prüfen, ob der Marker angeklickt wurde.
+   * @param {*} event Das Click-Event
+   * @returns {void}
+   */
   handleClick(event) {
   if (!this.markerAdded || !this.markerObject) return;
 
@@ -99,6 +115,12 @@ export class TargetMarker {
   }
   }
 
+  /**
+   * Prüft, ob das Objekt vor der Kamera (im Sichtfeld des Users) ist.
+   * @param {THREE.Object3D} object Das zu prüfende Objekt
+   * @param {THREE.Camera} camera Die Kamera
+   * @returns {boolean} Ob das Objekt vor der Kamera ist
+   */
   isInFrontOfCamera(object, camera) {
     const objectPos = new THREE.Vector3();
     object.getWorldPosition(objectPos);
@@ -109,6 +131,9 @@ export class TargetMarker {
     return cameraForward.dot(cameraToObject) > 0;
   }
 
+  /**
+   * Entfernt den Marker aus der Szene.
+   */
   dispose() {
     window.removeEventListener("click", this.handleClick);
   }

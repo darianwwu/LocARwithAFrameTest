@@ -1,6 +1,13 @@
 import 'three';
 
-// Berechnet die Distanz zwischen zwei GPS-Koordinaten
+/**
+ * Berechnet die Distanz zwischen zwei GPS-Koordinaten (Haversine-Formel)
+ * @param {*} lat1 Latitude des ersten Punktes
+ * @param {*} lon1 Longitude des ersten Punktes
+ * @param {*} lat2 Latitude des zweiten Punktes
+ * @param {*} lon2 Longitude des zweiten Punktes
+ * @returns Berechnete Distanz in Metern
+ */
 export function computeDistance(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Erdradius in Metern
   const φ1 = THREE.MathUtils.degToRad(lat1);
@@ -15,7 +22,13 @@ export function computeDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Zeigt die Distanz zwischen zwei GPS-Koordinaten in einem Overlay an
+/**
+ * Zeigt die Distanz zwischen zwei GPS-Koordinaten in einem Overlay an
+ * @param {*} currentCoords Aktuelle GPS-Koordinaten des Users
+ * @param {*} targetCoords Ziel-GPS-Koordinaten
+ * @param {*} distanceOverlay UI-Element, in dem die Distanz angezeigt wird
+ * @returns 
+ */
 export function updateDistance(currentCoords, targetCoords, distanceOverlay) {
   if (currentCoords.longitude === null || currentCoords.latitude === null) return;
   const distance = computeDistance(
@@ -28,7 +41,7 @@ export function updateDistance(currentCoords, targetCoords, distanceOverlay) {
   // Wenn Entfernung größer als 1000 m, in km anzeigen
   if (distance >= 1000) {
     const km = distance / 1000;
-    // Formatieren auf eine Nachkommastelle, Komma statt Punkt als Dezimaltrennzeichen
+    // Formatieren auf eine Nachkommastelle
     const kmString = km.toFixed(1).replace('.', ',');
     distanceOverlay.innerText = `${kmString} km`;
   } else {
