@@ -379,7 +379,7 @@ canvas {
   box-shadow: var(--shadow-lg);
 }
 
-/* Compass Container */
+/* Compass Container - Ihre bestehende Basis */
 .compass-container {
   position: fixed;
   top: var(--spacing-lg);
@@ -396,15 +396,15 @@ canvas {
   box-shadow: var(--shadow-lg);
 }
 
-/* Kompass-Pfeil */
+/* Fester Kompass-Pfeil (zeigt immer nach oben/Norden) */
 .compass-arrow {
   position: relative;
   width: 4px;
-  height: 20px;
+  height: 25px;
   background: linear-gradient(to bottom, #ff4444 0%, #ff4444 60%, #666666 60%, #666666 100%);
   border-radius: 2px;
-  transform-origin: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 10;
 }
 
 .compass-arrow::before {
@@ -421,14 +421,41 @@ canvas {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
-/* Himmelsrichtungen */
+/* Rotierender äußerer Ring mit Himmelsrichtungen und Strichen */
 .compass-directions {
   position: absolute;
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  transform-origin: center;
+  transition: transform 0.3s ease;
 }
 
+/* Skalierungsstriche */
+.compass-tick {
+  position: absolute;
+  background: var(--color-surface);
+  transform-origin: center;
+}
+
+.compass-tick.major {
+  width: 2px;
+  height: 8px;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff4444;
+}
+
+.compass-tick.minor {
+  width: 1px;
+  height: 5px;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Himmelsrichtungen */
 .compass-direction {
   position: absolute;
   font-size: 11px;
@@ -442,6 +469,7 @@ canvas {
   left: 50%;
   transform: translateX(-50%);
   color: #ff4444;
+  font-weight: 700;
 }
 
 .compass-direction.south {
@@ -462,6 +490,7 @@ canvas {
   transform: translateY(-50%);
 }
 
+/* Grad-Anzeige - Ihre bestehende */
 .compass-text {
   position: absolute;
   bottom: -25px;
