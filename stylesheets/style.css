@@ -364,7 +364,7 @@ canvas {
 /* Distance Overlay */
 .distance-overlay {
   position: absolute;
-  bottom: 10px;
+  bottom: var(--spacing-md);
   left: 50%;
   transform: translateX(-50%);
   font-size: var(--font-size-lg);
@@ -372,8 +372,8 @@ canvas {
   color: var(--color-surface);
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
-  padding: var(--spacing-sm) var(--spacing-sm);
-  border-radius: 10px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 15px;
   text-align: center;
   z-index: var(--z-index-base);
   box-shadow: var(--shadow-lg);
