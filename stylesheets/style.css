@@ -384,8 +384,8 @@ canvas {
   position: fixed;
   top: var(--spacing-lg);
   right: var(--spacing-lg);
-  width: 70px;
-  height: 70px;
+  width: 90px;
+  height: 90px;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   border-radius: var(--radius-round);
@@ -396,15 +396,70 @@ canvas {
   box-shadow: var(--shadow-lg);
 }
 
+/* Kompass-Pfeil */
 .compass-arrow {
-  font-size: 60px;
-  color: var(--color-surface);
   position: relative;
-  width: 40px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 4px;
+  height: 50px;
+  background: linear-gradient(to bottom, #ff4444 0%, #ff4444 60%, #666666 60%, #666666 100%);
+  border-radius: 2px;
+  transform-origin: center bottom;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.compass-arrow::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 12px solid #ff4444;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* Himmelsrichtungen */
+.compass-directions {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.compass-direction {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-surface);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.compass-direction.north {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ff4444;
+}
+
+.compass-direction.south {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.compass-direction.east {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.compass-direction.west {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .compass-text {
