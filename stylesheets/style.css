@@ -382,10 +382,10 @@ canvas {
 /* Compass Container - Ihre bestehende Basis */
 .compass-container {
   position: fixed;
-  top: var(--spacing-lg);
-  right: var(--spacing-lg);
-  width: 90px;
-  height: 90px;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 60px;
+  height: 60px;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   border-radius: var(--radius-round);
@@ -395,7 +395,6 @@ canvas {
   z-index: var(--z-index-base);
   box-shadow: var(--shadow-lg);
 }
-
 /* Fester Kompass-Pfeil (zeigt immer nach oben/Norden) */
 .compass-arrow {
   position: relative;
@@ -512,8 +511,8 @@ canvas {
 /* GPS Genauigkeits-Anzeige */
 .gps-accuracy {
     position: fixed;
-    top: var(--spacing-lg);
-    left: var(--spacing-lg);
+    top: var(--spacing-md);
+    left: var(--spacing-md);
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(15px);
     border-radius: var(--radius-lg);
@@ -625,19 +624,4 @@ canvas {
     font-size: var(--font-size-lg);
   }
   
-  .compass-container {
-    width: 60px;
-    height: 60px;
-    top: var(--spacing-md);
-    right: var(--spacing-md);
-  }
-  
-  .compass-arrow {
-    font-size: 32px;
-  }
-
-  .gps-accuracy {
-    top: var(--spacing-md);
-    left: var(--spacing-md);
-  }
 }
