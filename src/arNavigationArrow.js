@@ -30,7 +30,7 @@ export class ARNavigationArrow {
       this.arrowObject.traverse(child => child.frustumCulled = false);
       // Pfeil dem Kamera-Objekt hinzufügen
       this.camera.add(this.arrowObject);
-      this.arrowObject.position.set(0, -0.7, -1.3);
+      this.arrowObject.position.set(0, -0.6, -1.3);
       // Klick-Listener registrieren
       window.addEventListener("click", this.handleClick);
       onLoadCallback();

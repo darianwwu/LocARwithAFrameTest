@@ -364,7 +364,7 @@ canvas {
 /* Distance Overlay */
 .distance-overlay {
   position: absolute;
-  bottom: 20px;
+  bottom: var(--spacing-md);
   left: 50%;
   transform: translateX(-50%);
   font-size: var(--font-size-lg);
@@ -373,19 +373,19 @@ canvas {
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: 20px;
+  border-radius: 15px;
   text-align: center;
   z-index: var(--z-index-base);
   box-shadow: var(--shadow-lg);
 }
 
-/* Compass Container */
+/* Compass Container - Ihre bestehende Basis */
 .compass-container {
   position: fixed;
-  top: var(--spacing-lg);
-  right: var(--spacing-lg);
-  width: 70px;
-  height: 70px;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 60px;
+  height: 60px;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   border-radius: var(--radius-round);
@@ -395,18 +395,106 @@ canvas {
   z-index: var(--z-index-base);
   box-shadow: var(--shadow-lg);
 }
-
+/* Fester Kompass-Pfeil (zeigt immer nach oben/Norden) */
 .compass-arrow {
-  font-size: 60px;
-  color: var(--color-surface);
   position: relative;
-  width: 40px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(to bottom, #ff4444 0%, #ff4444 60%, #666666 60%, #666666 100%);
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 10;
 }
 
+.compass-arrow::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 12px solid #ff4444;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* Rotierender äußerer Ring mit Himmelsrichtungen und Strichen */
+.compass-directions {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-origin: center;
+  transition: transform 0.05s ease;
+}
+
+/* Skalierungsstriche */
+.compass-tick {
+  position: absolute;
+  background: var(--color-surface);
+  transform-origin: center;
+}
+
+.compass-tick.minor {
+  width: 1px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center top;
+}
+
+.tick-ne {
+  transform: rotate(45deg) translateY(-27px);
+}
+.tick-se {
+  transform: rotate(135deg) translateY(-27px);
+}
+.tick-sw {
+  transform: rotate(225deg) translateY(-27px);
+}
+.tick-nw {
+  transform: rotate(315deg) translateY(-27px);
+}
+
+/* Himmelsrichtungen */
+.compass-direction {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-surface);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.compass-direction.north {
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ff4444;
+  font-weight: 700;
+}
+
+.compass-direction.south {
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.compass-direction.east {
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.compass-direction.west {
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Grad-Anzeige - Ihre bestehende */
 .compass-text {
   position: absolute;
   bottom: -25px;
@@ -423,8 +511,8 @@ canvas {
 /* GPS Genauigkeits-Anzeige */
 .gps-accuracy {
     position: fixed;
-    top: var(--spacing-lg);
-    left: var(--spacing-lg);
+    top: var(--spacing-md);
+    left: var(--spacing-md);
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(15px);
     border-radius: var(--radius-lg);
@@ -536,19 +624,4 @@ canvas {
     font-size: var(--font-size-lg);
   }
   
-  .compass-container {
-    width: 60px;
-    height: 60px;
-    top: var(--spacing-md);
-    right: var(--spacing-md);
-  }
-  
-  .compass-arrow {
-    font-size: 32px;
-  }
-
-  .gps-accuracy {
-    top: var(--spacing-md);
-    left: var(--spacing-md);
-  }
 }

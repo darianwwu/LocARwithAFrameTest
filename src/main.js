@@ -262,6 +262,7 @@ function addCompass() {
     deviceOrientationControl: controls,
     compassArrowId: 'compassArrow',
     compassTextId: 'compassText',
+    compassDirectionsId: 'compassDirections',
     getScreenOrientation: () => screenOrientation
   });
 }

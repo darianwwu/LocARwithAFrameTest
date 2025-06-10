@@ -1,8 +1,9 @@
 export class CompassGUI {
-  constructor({ deviceOrientationControl, compassArrowId, compassTextId, getScreenOrientation}) {
+  constructor({ deviceOrientationControl, compassArrowId, compassTextId, compassDirectionsId, getScreenOrientation}) {
     this.deviceOrientationControl = deviceOrientationControl;
     this.compassArrow = document.getElementById(compassArrowId);
     this.compassText = document.getElementById(compassTextId);
+    this.compassDirections = document.getElementById(compassDirectionsId);
     this.getScreenOrientation = getScreenOrientation;
   }
   /**
@@ -15,7 +16,7 @@ export class CompassGUI {
   const heading = this.deviceOrientationControl.getCorrectedHeading();
   
   // UI Elemente aktualisieren
-  this.compassArrow.style.transform = `rotate(${heading}deg)`;
+  this.compassDirections.style.transform = `rotate(${-heading}deg)`;
   this.compassText.innerText = `${Math.round(heading)}°`;
   
   }
