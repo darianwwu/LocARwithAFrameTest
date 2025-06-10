@@ -448,16 +448,16 @@ canvas {
 }
 
 .tick-ne {
-  transform: rotate(45deg) translateY(-25px);
+  transform: rotate(45deg) translateY(-27px);
 }
 .tick-se {
-  transform: rotate(135deg) translateY(-25px);
+  transform: rotate(135deg) translateY(-27px);
 }
 .tick-sw {
-  transform: rotate(225deg) translateY(-25px);
+  transform: rotate(225deg) translateY(-27px);
 }
 .tick-nw {
-  transform: rotate(315deg) translateY(-25px);
+  transform: rotate(315deg) translateY(-27px);
 }
 
 /* Himmelsrichtungen */
