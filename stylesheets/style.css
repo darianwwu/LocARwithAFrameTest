@@ -444,7 +444,7 @@ canvas {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform-origin: center center;
+  transform-origin: center bottom;
 }
 
 .tick-ne {
