@@ -809,6 +809,14 @@ input:checked + .toggle-slider:before {
   border-radius: var(--radius-round);
 }
 
+.color-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: #ff4444;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
 /* Responsive Design für Settings */
 @media (max-width: 480px) {
   .settings-menu {
