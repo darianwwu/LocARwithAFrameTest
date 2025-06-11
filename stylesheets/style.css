@@ -619,8 +619,8 @@ canvas {
   position: fixed;
   bottom: var(--spacing-md);
   right: var(--spacing-md);
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   border: none;
@@ -645,8 +645,8 @@ canvas {
 }
 
 .settings-icon {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   stroke: var(--color-surface);
   transition: transform var(--transition-base);
 }
