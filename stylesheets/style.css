@@ -721,46 +721,11 @@ canvas {
   padding: var(--spacing-sm) var(--spacing-lg);
 }
 
-.settings-label {
+.settings-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  cursor: pointer;
+  justify-content: space-between;
   padding: var(--spacing-sm) 0;
-  transition: all var(--transition-fast);
-}
-
-.settings-label:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-sm);
-}
-
-.settings-checkbox {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  cursor: pointer;
-  position: relative;
-  margin: 0;
-  transition: all var(--transition-fast);
-}
-
-.settings-checkbox:checked {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.settings-checkbox:checked::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--color-surface);
-  font-size: 14px;
-  font-weight: bold;
 }
 
 .settings-text {
@@ -768,6 +733,88 @@ canvas {
   color: var(--color-surface);
   font-weight: var(--font-weight-normal);
   user-select: none;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.3);
+  transition: var(--transition-base);
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--color-surface);
+  transition: var(--transition-base);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--color-primary);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+/* Color Picker */
+.color-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.color-input {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-input::-webkit-color-swatch {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-round);
+}
+
+.color-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: #ff4444;
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive Design für Settings */
