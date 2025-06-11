@@ -7,8 +7,8 @@
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
   />
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-C3KBkt2-.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-B8t5MqfD.css">
+  <script type="module" crossorigin src="./assets/index-BfafPNnF.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-hauz7mwC.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -108,12 +108,40 @@
       
       <div id="compassArrow" class="compass-arrow"></div>
       <div id="compassText" class="compass-text"></div>
-    </div>
-
-    <div class="gps-accuracy">
+    </div>    <div class="gps-accuracy">
       <div class="gps-indicator gps-indicator--high"></div>
       <div class="gps-text">
         GPS: <span class="gps-accuracy-value">~3m</span>
+      </div>
+    </div>
+
+    <!-- Settings Button -->
+    <button id="settingsButton" class="settings-button">
+      <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M12 1v6m0 14v-6m11-5h-6M6 12H1m15.5-8.5L12 8l-4.5-4.5M16.5 20.5L12 16l-4.5 4.5"></path>
+      </svg>
+    </button>
+
+    <!-- Settings Menu -->
+    <div id="settingsMenu" class="settings-menu">
+      <div class="settings-menu__header">
+        <h3 class="settings-menu__title">Einstellungen</h3>
+        <button id="settingsClose" class="settings-menu__close">✕</button>
+      </div>
+      <div class="settings-menu__content">
+        <div class="settings-item">
+          <label class="settings-label">
+            <input type="checkbox" id="toggleCompass" class="settings-checkbox" checked>
+            <span class="settings-text">Kompass anzeigen</span>
+          </label>
+        </div>
+        <div class="settings-item">
+          <label class="settings-label">
+            <input type="checkbox" id="toggleGPS" class="settings-checkbox" checked>
+            <span class="settings-text">GPS-Genauigkeit anzeigen</span>
+          </label>
+        </div>
       </div>
     </div>
   </div>
