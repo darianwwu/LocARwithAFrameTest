@@ -832,3 +832,17 @@ input:checked + .toggle-slider:before {
     right: var(--spacing-md);
   }
 }
+
+/* A-Frame VR Button ausblenden */
+.a-enter-vr-button,
+.a-enter-vr,
+[data-aframe-default-ui],
+.a-orientation-modal {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Alle A-Frame UI Elemente ausblenden */
+.a-ui {
+  display: none !important;
+}
