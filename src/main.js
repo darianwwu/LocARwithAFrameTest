@@ -22,6 +22,17 @@ const distanceOverlay  = document.getElementById('distance-overlay');
 const gpsIndicator      = document.querySelector('.gps-indicator');
 const gpsAccuracyValue  = document.querySelector('.gps-accuracy-value');
 
+// Settings-Elemente
+const settingsButton = document.getElementById('settingsButton');
+const settingsMenu = document.getElementById('settingsMenu');
+const settingsClose = document.getElementById('settingsClose');
+const toggleCompass = document.getElementById('toggleCompass');
+const toggleGPS = document.getElementById('toggleGPS');
+const arrowColorPicker = document.getElementById('arrowColorPicker');
+const colorPreview = document.getElementById('colorPreview');
+const compassContainer = document.getElementById('compassContainer');
+const gpsAccuracy = document.querySelector('.gps-accuracy');
+
 // State
 let sceneEl, renderer, cameraEl, threeCamera;
 let locar, controls;
@@ -136,6 +147,76 @@ btnStart.addEventListener('click', async() => {
   }
 });
 
+// Settings Event Listeners
+settingsButton.addEventListener('click', (e) => {
+  e.stopPropagation(); // Verhindert das Schließen durch document-click
+  settingsMenu.classList.toggle('settings-menu--visible');
+});
+
+settingsClose.addEventListener('click', () => {
+  settingsMenu.classList.remove('settings-menu--visible');
+});
+
+// Außerhalb des Menüs klicken um zu schließen
+document.addEventListener('click', (e) => {
+  if (!settingsMenu.contains(e.target) && !settingsButton.contains(e.target)) {
+    settingsMenu.classList.remove('settings-menu--visible');
+  }
+});
+
+// Kompass Toggle
+toggleCompass.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    compassContainer.style.display = 'flex';
+  } else {
+    compassContainer.style.display = 'none';
+  }
+});
+
+// GPS Accuracy Toggle
+toggleGPS.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    gpsAccuracy.style.display = 'flex';
+  } else {
+    gpsAccuracy.style.display = 'none';
+  }
+});
+
+// Farbauswahl für Navigationspfeil
+arrowColorPicker.addEventListener('change', (e) => {
+  const selectedColor = e.target.value;
+  
+  // Farbvorschau aktualisieren
+  colorPreview.style.background = selectedColor;
+  
+  // Pfeilfarbe ändern (wenn der Pfeil bereits existiert)
+  if (window.arrow && window.arrow.arrowObject) {
+    updateArrowColor(selectedColor);
+  }
+  
+  // Farbe für zukünftige Pfeile speichern
+  window.selectedArrowColor = selectedColor;
+});
+
+// Funktion zum Aktualisieren der Pfeilfarbe
+function updateArrowColor(color) {
+  if (!window.arrow || !window.arrow.arrowObject) return;
+  
+  window.arrow.arrowObject.traverse((child) => {
+    if (child.isMesh && child.material) {
+      // Erstelle neues Material mit der gewählten Farbe
+      child.material = child.material.clone();
+      child.material.color.setHex(color.replace('#', '0x'));
+      child.material.needsUpdate = true;
+    }
+  });
+}
+
+// Farbvorschau beim Laden initialisieren
+if (colorPreview) {
+  colorPreview.style.background = arrowColorPicker.value;
+}
+
 /**
  * Hilfsfunktion, um ein Popup anzuzeigen.
  * @param {*} text Der Text, der im Popup angezeigt werden soll
@@ -201,7 +282,7 @@ async function init() {
 
     // Device Controls initialisieren
     controls = new DeviceOrientationControls(threeCamera, {
-      smoothingFactor: 0.05,
+      smoothingFactor: 0.15,
       enablePermissionDialog: false
     });
     

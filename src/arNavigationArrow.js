@@ -37,16 +37,26 @@ export class ARNavigationArrow {
       });
     }
   }
-
   setupArrow() {
     this.arrowObject.scale.set(0.2, 0.2, 0.2);
     // Frustum Culling deaktivieren, damit der Pfeil immer sichtbar ist
-    this.arrowObject.traverse(child => child.frustumCulled = false);
+    this.arrowObject.traverse(child => {
+      child.frustumCulled = false;
+      // Setze initiale Farbe wenn verfügbar
+      if (child.isMesh && child.material && window.selectedArrowColor) {
+        child.material = child.material.clone();
+        child.material.color.setHex(window.selectedArrowColor.replace('#', '0x'));
+        child.material.needsUpdate = true;
+      }
+    });
     // Pfeil dem Kamera-Objekt hinzufügen
     this.camera.add(this.arrowObject);
     this.arrowObject.position.set(0, -0.6, -1.3);
     // Klick-Listener registrieren
     window.addEventListener("click", this.handleClick);
+    
+    // Arrow-Referenz global verfügbar machen für Farbänderungen
+    window.arrow = this;
   }
 
   /**

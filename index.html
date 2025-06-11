@@ -76,7 +76,7 @@
         look-controls="magicWindowTrackingEnabled: false"
         wasd-controls
         locar-camera
-        device-orientation-controls="smoothingFactor: 0.25"
+        device-orientation-controls="smoothingFactor: 0.15"
         gps-new-camera="gpsMinDistance: 3"
       ></a-camera>
     </a-scene>
@@ -107,12 +107,52 @@
       
       <div id="compassArrow" class="compass-arrow"></div>
       <div id="compassText" class="compass-text"></div>
-    </div>
-
-    <div class="gps-accuracy">
+    </div>    <div class="gps-accuracy">
       <div class="gps-indicator gps-indicator--high"></div>
       <div class="gps-text">
         GPS: <span class="gps-accuracy-value">~3m</span>
+      </div>
+    </div>    <!-- Settings Button -->
+    <button id="settingsButton" class="settings-button">
+      <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
+
+    <!-- Settings Menu -->
+    <div id="settingsMenu" class="settings-menu">
+      <div class="settings-menu__header">
+        <h3 class="settings-menu__title">Einstellungen</h3>
+        <button id="settingsClose" class="settings-menu__close">✕</button>
+      </div>      <div class="settings-menu__content">
+        <div class="settings-item">
+          <div class="settings-row">
+            <span class="settings-text">Kompass anzeigen</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleCompass" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-row">
+            <span class="settings-text">GPS-Genauigkeit anzeigen</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleGPS" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-row">
+            <span class="settings-text">Pfeilfarbe wählen</span>
+            <div class="color-picker">
+              <input type="color" id="arrowColorPicker" value="#ff4444" class="color-input">
+              <div class="color-preview" id="colorPreview" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
