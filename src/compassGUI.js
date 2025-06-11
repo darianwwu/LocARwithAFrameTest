@@ -16,7 +16,7 @@ export class CompassGUI {
   const heading = this.deviceOrientationControl.getCorrectedHeading();
   
   // UI Elemente aktualisieren
-  this.compassDirections.style.transform = `rotate(${-heading}deg)`;
+  this.compassDirections.style.transform = `rotate(${heading}deg)`;
   this.compassText.innerText = `${Math.round(heading)}°`;
   
   }

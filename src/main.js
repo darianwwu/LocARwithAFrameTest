@@ -54,25 +54,48 @@ btnTest.addEventListener('click', async () => {
   // Für Test Button aktuelle Position abrufen um Testpunkte zu setzen
   try {
     const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject);
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        maximumAge: 0
+      });
     });
-    console.log('Current position:', pos);
-    currentCoords.latitude  = pos.coords.latitude;
+    
+    currentCoords.latitude = pos.coords.latitude;
     currentCoords.longitude = pos.coords.longitude;
     console.log('Aktuelle Koordinaten gesetzt:', currentCoords);
 
-    // Erzeuge 5 Testpunkte mit einfachen Offsets in unterschiedlichen Entfernungen und Richtungen
-    const baseLat = currentCoords.latitude;
-    const baseLon = currentCoords.longitude;
-
-    const tests = [
-      { latitude: baseLat + 0.00027, longitude: baseLon, popupContent: 'Testpunkt ~30m Nord' },
-      { latitude: baseLat, longitude: baseLon + 0.0011, popupContent: 'Testpunkt ~80m Ost' },
-      { latitude: baseLat - 0.0027, longitude: baseLon, popupContent: 'Testpunkt ~300m Süd' },
-      { latitude: baseLat, longitude: baseLon - 0.0054, popupContent: 'Testpunkt ~400m West' },
-      { latitude: baseLat + 0.0081, longitude: baseLon + 0.0081, popupContent: 'Testpunkt ~900m Nordost' }
+    // Testpunkte vordefinieren und in einem Batch erstellen
+    const newMarkers = [
+      { 
+        latitude: currentCoords.latitude + 0.00027,
+        longitude: currentCoords.longitude,
+        popupContent: 'Testpunkt ~30m Nord'
+      },
+      { 
+        latitude: currentCoords.latitude,
+        longitude: currentCoords.longitude + 0.0011,
+        popupContent: 'Testpunkt ~80m Ost'
+      },
+      { 
+        latitude: currentCoords.latitude - 0.0027,
+        longitude: currentCoords.longitude,
+        popupContent: 'Testpunkt ~300m Süd'
+      },
+      { 
+        latitude: currentCoords.latitude,
+        longitude: currentCoords.longitude - 0.0054,
+        popupContent: 'Testpunkt ~400m West'
+      },
+      { 
+        latitude: currentCoords.latitude + 0.0081,
+        longitude: currentCoords.longitude + 0.0081,
+        popupContent: 'Testpunkt ~900m Nordost'
+      }
     ];
-    targetCoords.push(...tests);
+
+    // Alle Marker auf einmal hinzufügen
+    targetCoords.push(...newMarkers);
+    
     showPopup('5 Marker hinzugefügt!', 1500);
   } catch (err) {
     console.error('Fehler beim Abrufen der aktuellen Position:', err);
@@ -82,28 +105,35 @@ btnTest.addEventListener('click', async () => {
 
 btnStart.addEventListener('click', async() => {
   console.log('Start button clicked');
-  init();
-  if (
-    window.DeviceOrientationEvent &&
-    typeof window.DeviceOrientationEvent.requestPermission === "function"
-  ) {
-    try {
-      const result = await DeviceOrientationEvent.requestPermission();
-      if (result === "granted") {
-        controls.connect();
-      } else {
-        alert("Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.");
-      }
-    } catch (err) {
-      console.error("Permission-Request schlug fehl:", err);
+  
+  try {
+    // Starte Initialisierung
+    const initProcess = init();
+    
+    // Parallel dazu: Device Orientation Permissions
+    let permissionPromise = Promise.resolve();
+    if (window.DeviceOrientationEvent?.requestPermission) {
+      permissionPromise = DeviceOrientationEvent.requestPermission()
+        .then(result => {
+          if (result !== "granted") {
+            throw new Error("Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.");
+          }
+        });
     }
-  } else {
+    
+    // Warte auf beide Prozesse
+    await Promise.all([initProcess, permissionPromise]);
+    
+    // Verbinde Controls und zeige AR-Container
     controls.connect();
+    overlayContainer.style.display = 'none';
+    arContainer.style.display = 'block';
+    
+    console.log('AR-Modus erfolgreich gestartet');
+  } catch (err) {
+    console.error("Fehler beim Starten des AR-Modus:", err);
+    showPopup('Fehler beim Starten des AR-Modus', 3000);
   }
-  overlayContainer.remove();
-  arContainer.style.display = 'block';
-
-  console.log('Overlay removed, AR container shown');
 });
 
 /**
@@ -121,63 +151,84 @@ function showPopup(text, d) {
   }
 }
 
+// AR-Szene früh initialisieren
+let initPromiseResolve;
+const initPromise = new Promise(resolve => {
+  initPromiseResolve = resolve;
+});
+
 /**
- * Initialisiert die AR-Szene, setzt die Kamera und registriert Event-Listener. Registriert den Window-Resize-Handler für die Kamera und Renderer (wichtig für Landscape Korrektur auf iOS).
- * @returns 
+ * Initialisiert die AR-Szene, setzt die Kamera und registriert Event-Listener.
+ * @returns {Promise} Promise, das resolved wird, wenn die Initialisierung abgeschlossen ist
  */
-function init() {
+async function init() {
   console.log('init() aufgerufen');
-  sceneEl  = document.querySelector('a-scene');
+  
+  // Scene und Renderer Setup
+  sceneEl = document.querySelector('a-scene');
   renderer = sceneEl.renderer;
   cameraEl = document.getElementById('camera');
-  console.log('sceneEl, renderer, cameraEl:', sceneEl, renderer, cameraEl);
+  
+  // Kamera Setup mit Retry
+  const setupCamera = async () => {
+    const threeCam = cameraEl.getObject3D('camera');
+    if (!threeCam) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return setupCamera();
+    }
+    return threeCam;
+  };
 
-  const threeCam = cameraEl.getObject3D('camera');
-  if (!threeCam) {
-    console.warn('Kamera noch nicht da, warte 100 ms …');
-    return setTimeout(init, 100);
-  }
-  threeCamera = threeCam;
-  console.log('threeCamera gesetzt:', threeCamera);
+  try {
+    threeCamera = await setupCamera();
+    console.log('threeCamera initialisiert:', threeCamera);
 
-  window.addEventListener("resize", () => {
-    if (isIOS) {
-      setTimeout(() => {
+    // Event Listener für Resize
+    const handleResize = () => {
+      const updateCamera = () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         threeCamera.aspect = window.innerWidth / window.innerHeight;
         threeCamera.updateProjectionMatrix();
-      }, 200);
+      };
+      
+      if (isIOS) {
+        setTimeout(updateCamera, 200);
+      } else {
+        updateCamera();
+      }
+    };
+    window.addEventListener("resize", handleResize);
+
+    // Device Controls initialisieren
+    controls = new DeviceOrientationControls(threeCamera, {
+      smoothingFactor: 0.05,
+      enablePermissionDialog: false
+    });
+    
+    // LocAR Setup
+    const comp = cameraEl.components['locar-camera'];
+    if (comp?.locar) {
+      locar = comp.locar;
+      locar.startGps();
     } else {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      threeCamera.aspect = window.innerWidth / window.innerHeight;
-      console.log('Kamera aktualisiert vorher: ', threeCamera);
-      threeCamera.updateProjectionMatrix();
-      console.log('Kamera aktualisiert nachher: ', threeCamera);
+      throw new Error('locar-camera fehlt oder locar nicht initialisiert');
     }
-  });
 
-  controls = new DeviceOrientationControls(threeCamera, {
-    smoothingFactor: 0.05,
-    enablePermissionDialog: false
-  });
-  console.log('DeviceOrientationControls initialisiert');
-
-  const comp = cameraEl.components['locar-camera'];
-  console.log('locar-camera component:', comp);
-  if (comp?.locar) {
-    locar = comp.locar;
-    console.log('locar.startGps() aufgerufen');
-    locar.startGps();
-  } else {
-    console.warn('locar-camera fehlt oder locar nicht initialisiert.');
+    // Event Listeners
+    cameraEl.addEventListener('gpsupdate', onGpsUpdate);
+    renderer.setAnimationLoop(animate);
+    
+    console.log('AR-Szene erfolgreich initialisiert');
+    initPromiseResolve();
+  } catch (error) {
+    console.error('Fehler bei der Initialisierung:', error);
+    throw error;
   }
-
-  cameraEl.addEventListener('gpsupdate', onGpsUpdate);
-  renderer.setAnimationLoop(animate);
-  console.log('Animation loop gestartet');
 }
 
-// GPS-Update
+/**
+ * GPS-Update
+ */
 function onGpsUpdate(e) {
   console.log('gpsupdate event:', e.detail.position);
   const pos = e.detail.position.coords;
@@ -335,4 +386,46 @@ function setActive(i) {
         : './images/map-marker.png'
     );
   });
+}
+
+// Sofort beim Laden der Seite mit dem Preloading beginnen
+document.addEventListener('DOMContentLoaded', () => {
+  // Starte Preloading im Hintergrund
+  preloadAssets().catch(err => {
+    console.warn('Assets konnten nicht vorgeladen werden:', err);
+  });
+});
+
+/**
+ * Lädt alle benötigten Assets im Voraus, um eine reibungslose Benutzererfahrung zu gewährleisten.
+ * @returns {Promise} Ein Promise, das resolved wird, wenn das Preloading abgeschlossen ist
+ */
+function preloadAssets() {
+  console.log('Preloading assets...');
+  
+  // Beispiel für das Vorladen von Bildern
+  const imageAssets = [
+    './images/map-marker.png',
+    './images/map-marker-rot.png',
+    './glbmodell/Pfeil5.glb'
+  ];
+  
+  // Alle Bilder in einem Promise.all vorladen
+  const imagePromises = imageAssets.map(src => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => resolve(src);
+      img.onerror = () => reject(new Error(`Bild konnte nicht geladen werden: ${src}`));
+    });
+  });
+  
+  return Promise.all(imagePromises)
+    .then(results => {
+      console.log('Alle Assets erfolgreich vorgeladen:', results);
+    })
+    .catch(err => {
+      console.error('Fehler beim Vorladen der Assets:', err);
+      throw err;
+    });
 }

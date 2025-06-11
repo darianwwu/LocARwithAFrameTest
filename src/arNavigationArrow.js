@@ -23,18 +23,30 @@ export class ARNavigationArrow {
    * @param {*} onLoadCallback Callback, der aufgerufen wird, wenn das Modell geladen ist
    */
   initArrow(modelPath, onLoadCallback = () => {}) {
-    this.loader.load(modelPath, (gltf) => {
-      this.arrowObject = gltf.scene;
-      this.arrowObject.scale.set(0.2, 0.2, 0.2);
-      // Frustum Culling deaktivieren, damit der Pfeil immer sichtbar ist
-      this.arrowObject.traverse(child => child.frustumCulled = false);
-      // Pfeil dem Kamera-Objekt hinzufügen
-      this.camera.add(this.arrowObject);
-      this.arrowObject.position.set(0, -0.6, -1.3);
-      // Klick-Listener registrieren
-      window.addEventListener("click", this.handleClick);
+    if (window.cachedArrowModel) {
+      // Nutze das gecachte Modell
+      this.arrowObject = window.cachedArrowModel.clone();
+      this.setupArrow();
       onLoadCallback();
-    });
+    } else {
+      // Lade falls noch nicht gecacht
+      this.loader.load(modelPath, (gltf) => {
+        this.arrowObject = gltf.scene;
+        this.setupArrow();
+        onLoadCallback();
+      });
+    }
+  }
+
+  setupArrow() {
+    this.arrowObject.scale.set(0.2, 0.2, 0.2);
+    // Frustum Culling deaktivieren, damit der Pfeil immer sichtbar ist
+    this.arrowObject.traverse(child => child.frustumCulled = false);
+    // Pfeil dem Kamera-Objekt hinzufügen
+    this.camera.add(this.arrowObject);
+    this.arrowObject.position.set(0, -0.6, -1.3);
+    // Klick-Listener registrieren
+    window.addEventListener("click", this.handleClick);
   }
 
   /**
@@ -112,3 +124,31 @@ export class ARNavigationArrow {
     window.removeEventListener("click", this.handleClick);
   }
 }
+
+/**
+ * Vorlade-Funktion für Assets
+ * @returns {Promise} Promise, das resolved wird, wenn alle Assets geladen sind
+ */
+function preloadAssets() {
+  return new Promise((resolve, reject) => {
+    const loader = new GLTFLoader();
+    const modelPath = './public/glbmodell/Pfeil5.glb';
+    
+    loader.load(
+      modelPath,
+      (gltf) => {
+        // Cache das Modell global
+        window.cachedArrowModel = gltf.scene;
+        resolve();
+      },
+      undefined,
+      reject
+    );
+  });
+}
+
+preloadAssets().then(() => {
+  console.log('Assets vorab geladen');
+}).catch((error) => {
+  console.error('Fehler beim Vorladen der Assets:', error);
+});
