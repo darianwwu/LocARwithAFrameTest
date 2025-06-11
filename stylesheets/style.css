@@ -54,13 +54,15 @@
   --transition-fast: 150ms ease-in-out;
   --transition-base: 250ms ease-in-out;
   --transition-slow: 350ms ease-in-out;
-  
-  /* Z-Index */
+    /* Z-Index */
   --z-index-base: 1;
   --z-index-overlay: 10;
   --z-index-modal: 100;
   --z-index-splash: 1000;
-  --button-size: calc(var(--font-size-lg) + 2 * var(--spacing-sm));
+  
+  /* Button Size - entspricht der Höhe des Distance-Overlays */
+  --distance-overlay-height: calc(var(--font-size-lg) * 1.5 + 2 * var(--spacing-sm));
+  --button-size: var(--distance-overlay-height);
 }
 
 /* Basis-Reset */
@@ -378,6 +380,11 @@ canvas {
   text-align: center;
   z-index: var(--z-index-base);
   box-shadow: var(--shadow-lg);
+  line-height: 1.5;
+  height: var(--distance-overlay-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Compass Container - Ihre bestehende Basis */
