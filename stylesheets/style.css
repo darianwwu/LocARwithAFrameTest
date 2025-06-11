@@ -60,6 +60,7 @@
   --z-index-overlay: 10;
   --z-index-modal: 100;
   --z-index-splash: 1000;
+  --button-size: calc(var(--font-size-lg) + 2 * var(--spacing-sm));
 }
 
 /* Basis-Reset */
@@ -618,6 +619,8 @@ canvas {
   position: fixed;
   bottom: var(--spacing-md);
   right: var(--spacing-md);
+  width: var(--button-size);
+  height: var(--button-size);
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   border: none;
@@ -630,11 +633,8 @@ canvas {
   box-shadow: var(--shadow-lg);
   transition: all var(--transition-base);
   color: var(--color-surface);
-  padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
 }
-
 
 .settings-button:hover {
   background: rgba(0, 0, 0, 0.85);
