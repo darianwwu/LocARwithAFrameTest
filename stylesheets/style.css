@@ -864,3 +864,71 @@ input:checked + .toggle-slider:before {
 .a-ui {
   display: none !important;
 }
+
+/* Debug Controls */
+.debug-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.debug-controls h4 {
+  margin: 0 0 10px 0;
+  color: #fff;
+  font-size: 14px;
+}
+
+.debug-section {
+  margin-bottom: 10px;
+}
+
+.debug-section label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #ccc;
+}
+
+.debug-btn {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 4px 8px;
+  margin: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: monospace;
+}
+
+.debug-btn:hover {
+  background: #555;
+}
+
+.debug-btn:active {
+  background: #666;
+}
+
+/* Debug Controls auf kleinen Bildschirmen anpassen */
+@media (max-width: 480px) {
+  .debug-controls {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+    font-size: 11px;
+  }
+  
+  .debug-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+}
