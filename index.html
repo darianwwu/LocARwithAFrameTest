@@ -7,8 +7,8 @@
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
   />
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-CJayhLEY.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Df458-u9.css">
+  <script type="module" crossorigin src="./assets/index-DY4QpqlY.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BfyhleT2.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -54,7 +54,16 @@
       </div>
 
       <button id="btnAddMarker" class="btn btn--primary">Marker hinzufügen</button>
-      <button id="btnStart" class="btn btn--accent">Navigation starten</button>
+      <button id="btnStart" class="btn btn--accent">Navigation starten</button>      <div class="form-group">
+        <label for="cameraResolution" class="form-label">Kamera-Auflösung</label>
+        <select id="cameraResolution" class="form-select">
+          <option value="1280x720">HD (1280×720) - Empfohlen</option>
+          <option value="1920x1080">Full HD (1920×1080)</option>
+          <option value="2560x1440">QHD (2560×1440)</option>
+          <option value="3840x2160" selected>4K (3840×2160) - Aktuell</option>
+        </select>
+        <p class="form-hint">Höhere Auflösungen bieten bessere Qualität, benötigen aber mehr Leistung</p>
+      </div>
 
       <div class="divider">oder</div>
 
