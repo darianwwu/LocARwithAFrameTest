@@ -15,27 +15,24 @@ export class ARNavigationArrow {
     this.arrowObject = null;
     this.isTransparent = false;
     this.handleClick = this.handleClick.bind(this);
+    
+    // Für Stabilisierung der Pfeilausrichtung
+    this.lastUpdate = 0;
+    this.lastAngle = 0;
+    this.updateThreshold = 50; // Minimum ms zwischen Updates
+    this.angleThreshold = 2; // Minimum Grad Änderung für Update
   }
-
   /**
    * Initialisiert den AR-Navigationspfeil mit dem angegebenen Modellpfad.
    * @param {*} modelPath Pfad zum GLTF-Modell des Pfeils
    * @param {*} onLoadCallback Callback, der aufgerufen wird, wenn das Modell geladen ist
    */
   initArrow(modelPath, onLoadCallback = () => {}) {
-    if (window.cachedArrowModel) {
-      // Nutze das gecachte Modell
-      this.arrowObject = window.cachedArrowModel.clone();
+    this.loader.load(modelPath, (gltf) => {
+      this.arrowObject = gltf.scene;
       this.setupArrow();
       onLoadCallback();
-    } else {
-      // Lade falls noch nicht gecacht
-      this.loader.load(modelPath, (gltf) => {
-        this.arrowObject = gltf.scene;
-        this.setupArrow();
-        onLoadCallback();
-      });
-    }
+    });
   }
   setupArrow() {
     this.arrowObject.scale.set(0.2, 0.2, 0.2);
@@ -98,35 +95,49 @@ export class ARNavigationArrow {
       this.toggleTransparency();
     }
   }
-
   /**
    * Aktualisiert die Position und Rotation des Pfeils basierend auf den aktuellen Koordinaten und der Ausrichtung des Geräts.
    * @returns {void}
    */
   update() {
-  if (!this.arrowObject || this.currentCoords.longitude === null || this.currentCoords.latitude === null) {
-    return;
+    if (!this.arrowObject || this.currentCoords.longitude === null || this.currentCoords.latitude === null) {
+      return;
+    }
+
+    const now = Date.now();
+    
+    // Throttle Updates für bessere Stabilität
+    if (now - this.lastUpdate < this.updateThreshold) {
+      return;
+    }
+
+    const targetCoordsArray = this.getTargetCoords();
+    const activeIndex = this.getIndexActiveMarker();
+    const lonlatTarget = this.locar.lonLatToWorldCoords(targetCoordsArray[activeIndex].longitude, targetCoordsArray[activeIndex].latitude);
+    const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
+    const lonlatUser = this.locar.lonLatToWorldCoords(this.currentCoords.longitude, this.currentCoords.latitude);
+    const userWorldPos = new THREE.Vector3(lonlatUser[0], 1.5, lonlatUser[1]);
+
+    const direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
+    const targetAngle = Math.atan2(direction.x, direction.z);
+
+    // Verwende die korrigierte Heading-Methode (in Radians)
+    const userHeading = this.deviceOrientationControl.getCorrectedHeading() * (Math.PI / 180);
+
+    let relativeAngle = targetAngle - userHeading;
+    relativeAngle += Math.PI;
+    relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
+    
+    // Konvertiere zu Grad für Schwellenwert-Vergleich
+    const relativeAngleDeg = relativeAngle * (180 / Math.PI);
+    
+    // Nur aktualisieren wenn sich der Winkel signifikant geändert hat
+    if (Math.abs(relativeAngleDeg - this.lastAngle) > this.angleThreshold) {
+      this.arrowObject.rotation.set(0, relativeAngle, 0);
+      this.lastAngle = relativeAngleDeg;
+      this.lastUpdate = now;
+    }
   }
-
-  const targetCoordsArray = this.getTargetCoords();
-  const activeIndex = this.getIndexActiveMarker();
-  const lonlatTarget = this.locar.lonLatToWorldCoords(targetCoordsArray[activeIndex].longitude, targetCoordsArray[activeIndex].latitude);
-  const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
-  const lonlatUser = this.locar.lonLatToWorldCoords(this.currentCoords.longitude, this.currentCoords.latitude);
-  const userWorldPos = new THREE.Vector3(lonlatUser[0], 1.5, lonlatUser[1]);
-
-  const direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
-  const targetAngle = Math.atan2(direction.x, direction.z);
-
-  // Verwende die korrigierte Heading-Methode (in Radians)
-  const userHeading = this.deviceOrientationControl.getCorrectedHeading() * (Math.PI / 180);
-
-  let relativeAngle = targetAngle - userHeading;
-  relativeAngle += Math.PI;
-  relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
-  this.arrowObject.rotation.set(0, relativeAngle, 0);
-}
-
   /**
    * Entfernt den AR-Navigationspfeil und alle zugehörigen Event-Listener.
    */
@@ -134,31 +145,3 @@ export class ARNavigationArrow {
     window.removeEventListener("click", this.handleClick);
   }
 }
-
-/**
- * Vorlade-Funktion für Assets
- * @returns {Promise} Promise, das resolved wird, wenn alle Assets geladen sind
- */
-function preloadAssets() {
-  return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader();
-    const modelPath = './public/glbmodell/Pfeil5.glb';
-    
-    loader.load(
-      modelPath,
-      (gltf) => {
-        // Cache das Modell global
-        window.cachedArrowModel = gltf.scene;
-        resolve();
-      },
-      undefined,
-      reject
-    );
-  });
-}
-
-preloadAssets().then(() => {
-  console.log('Assets vorab geladen');
-}).catch((error) => {
-  console.error('Fehler beim Vorladen der Assets:', error);
-});

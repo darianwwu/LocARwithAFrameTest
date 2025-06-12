@@ -232,11 +232,7 @@ function showPopup(text, d) {
   }
 }
 
-// AR-Szene früh initialisieren
-let initPromiseResolve;
-const initPromise = new Promise(resolve => {
-  initPromiseResolve = resolve;
-});
+// AR-Szene initialisieren
 
 /**
  * Initialisiert die AR-Szene, setzt die Kamera und registriert Event-Listener.
@@ -293,14 +289,11 @@ async function init() {
       locar.startGps();
     } else {
       throw new Error('locar-camera fehlt oder locar nicht initialisiert');
-    }
-
-    // Event Listeners
+    }    // Event Listeners
     cameraEl.addEventListener('gpsupdate', onGpsUpdate);
     renderer.setAnimationLoop(animate);
     
     console.log('AR-Szene erfolgreich initialisiert');
-    initPromiseResolve();
   } catch (error) {
     console.error('Fehler bei der Initialisierung:', error);
     throw error;
@@ -465,48 +458,5 @@ function setActive(i) {
       idx === i
         ? './images/map-marker-rot.png'
         : './images/map-marker.png'
-    );
-  });
-}
-
-// Sofort beim Laden der Seite mit dem Preloading beginnen
-document.addEventListener('DOMContentLoaded', () => {
-  // Starte Preloading im Hintergrund
-  preloadAssets().catch(err => {
-    console.warn('Assets konnten nicht vorgeladen werden:', err);
-  });
-});
-
-/**
- * Lädt alle benötigten Assets im Voraus, um eine reibungslose Benutzererfahrung zu gewährleisten.
- * @returns {Promise} Ein Promise, das resolved wird, wenn das Preloading abgeschlossen ist
- */
-function preloadAssets() {
-  console.log('Preloading assets...');
-  
-  // Beispiel für das Vorladen von Bildern
-  const imageAssets = [
-    './images/map-marker.png',
-    './images/map-marker-rot.png',
-    './glbmodell/Pfeil5.glb'
-  ];
-  
-  // Alle Bilder in einem Promise.all vorladen
-  const imagePromises = imageAssets.map(src => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => resolve(src);
-      img.onerror = () => reject(new Error(`Bild konnte nicht geladen werden: ${src}`));
-    });
-  });
-  
-  return Promise.all(imagePromises)
-    .then(results => {
-      console.log('Alle Assets erfolgreich vorgeladen:', results);
-    })
-    .catch(err => {
-      console.error('Fehler beim Vorladen der Assets:', err);
-      throw err;
-    });
+    );  });
 }

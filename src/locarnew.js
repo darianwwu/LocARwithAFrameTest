@@ -304,7 +304,9 @@ Message: ` + d.message
     this.texture.dispose();
   }
 }
-const z = navigator.userAgent.match(/iPhone|iPad|iPod/i) || /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints != null && navigator.maxTouchPoints > 1, J = new B(0, 0, 1), N = new U(), tt = new F(), et = new F(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)), it = { type: "change" };
+const z = navigator.userAgent.match(/iPhone|iPad|iPod/i) || /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints != null && navigator.maxTouchPoints > 1;
+const isAndroid = /Android/i.test(navigator.userAgent);
+const J = new B(0, 0, 1), N = new U(), tt = new F(), et = new F(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)), it = { type: "change" };
 class rt extends K {
   /**
    * Create an instance of DeviceOrientationControls.
@@ -317,7 +319,18 @@ class rt extends K {
       "THREE.DeviceOrientationControls: DeviceOrientationEvent is only available in secure contexts (https)"
     );
     const e = this, c = 1e-6, d = new F();
-    this.object = t, this.object.rotation.reorder("YXZ"), this.enabled = !0, this.deviceOrientation = null, this.screenOrientation = 0, this.alphaOffset = 0, this.initialOffset = null, this.TWO_PI = 2 * Math.PI, this.HALF_PI = 0.5 * Math.PI, this.orientationChangeEventName = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", this.smoothingFactor = i.smoothingFactor || 1, this.enablePermissionDialog = i.enablePermissionDialog !== false;
+    this.object = t, this.object.rotation.reorder("YXZ"), this.enabled = !0, this.deviceOrientation = null, this.screenOrientation = 0, this.alphaOffset = 0, this.initialOffset = null, this.TWO_PI = 2 * Math.PI, this.HALF_PI = 0.5 * Math.PI, this.orientationChangeEventName = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", this.smoothingFactor = i.smoothingFactor || 1, this.enablePermissionDialog = i.enablePermissionDialog !== false;    // Android Sensoren für verbesserte Orientierungsberechnung
+    this.androidSensors = {
+      useAndroidOrientation: false,
+      cleanup: null,
+      headingHistory: [],
+      stableHeading: 0,
+      lastUpdateTime: 0
+    };
+    
+    // Variable für Android Orientierungs-Stabilisierung
+    this.lastAndroidOrientation = null;
+    
     const g = function({
       alpha: s,
       beta: o,
@@ -341,23 +354,112 @@ class rt extends K {
                             e.screenOrientation === -90 ? Math.PI/2 : 0;
       }
     }, R = function(s, o, a, u, h) {
-      N.set(a, o, -u, "YXZ"), s.setFromEuler(N), s.multiply(et), s.multiply(tt.setFromAxisAngle(J, -h));
+      N.set(a, o, -u, "YXZ"), s.setFromEuler(N), s.multiply(et), s.multiply(tt.setFromAxisAngle(J, -h));    };    // Android Orientierungsberechnung Setup - Vereinfachte stabile Version
+    this.initAndroidOrientation = async function() {
+      if (!isAndroid) {
+        return false;
+      }
+      
+      try {
+        // Prüfe ob DeviceOrientationEvent verfügbar ist
+        if (!window.DeviceOrientationEvent) {
+          console.warn('Android: DeviceOrientationEvent nicht verfügbar');
+          return false;
+        }
+          // Vereinfachter Event Handler der direkt mit DeviceOrientation arbeitet
+        const handleOrientationSimple = (event) => {
+          if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+            // Direkte Verwendung der Orientierungsdaten ohne komplexe Matrix-Berechnungen
+            let alpha = event.alpha || 0;  // Z-Achse (Kompass)
+            let beta = event.beta || 0;    // X-Achse (Neigung vor/zurück)
+            let gamma = event.gamma || 0;  // Y-Achse (Neigung links/rechts)
+            
+            // Android-spezifische Korrekturen und Stabilisierung
+            if (alpha < 0) alpha += 360;
+            
+            // Verbesserte Stabilisierung durch gleitenden Durchschnitt
+            e.androidSensors.headingHistory.push(alpha);
+            if (e.androidSensors.headingHistory.length > 5) {
+              e.androidSensors.headingHistory.shift();
+            }
+            
+            // Berechne stabilisierten Heading-Wert
+            const avgHeading = e.androidSensors.headingHistory.reduce((sum, val) => sum + val, 0) / e.androidSensors.headingHistory.length;
+            
+            // Nur aktualisieren wenn sich der Wert signifikant geändert hat
+            const threshold = 1.5; // Grad
+            const currentTime = Date.now();
+            
+            if (!e.lastAndroidOrientation || 
+                Math.abs(avgHeading - e.androidSensors.stableHeading) > threshold ||
+                currentTime - e.androidSensors.lastUpdateTime > 100) { // max 100ms zwischen Updates
+              
+              e.androidSensors.stableHeading = avgHeading;
+              e.androidSensors.lastUpdateTime = currentTime;
+              
+              // Speichere aktuelle Werte
+              e.lastAndroidOrientation = { alpha: avgHeading, beta, gamma };
+              
+              // Erstelle DeviceOrientation-kompatibles Objekt mit stabilisierten Werten
+              e.deviceOrientation = {
+                alpha: avgHeading,
+                beta: beta,
+                gamma: gamma,
+                webkitCompassHeading: 360 - avgHeading // WebKit-Kompatibilität
+              };
+              
+              // Setze Heading für getCorrectedHeading
+              e.currentHeading = avgHeading;
+              
+              // Standard Device Orientation Handler aufrufen für normale Quaternion-Berechnung
+              g(e.deviceOrientation);
+            }
+          }
+        };
+        
+        // Event Listener registrieren
+        window.addEventListener('deviceorientation', handleOrientationSimple);
+        
+        // Cleanup Funktion speichern
+        e.androidSensors.cleanup = () => {
+          window.removeEventListener('deviceorientation', handleOrientationSimple);
+        };
+        
+        e.androidSensors.useAndroidOrientation = true;
+        console.log('Android vereinfachte Orientierung aktiviert');
+        return true;
+        
+      } catch (error) {
+        console.error('Android Orientierung Fehler:', error);
+        return false;
+      }
+    };    
+    this.connectDeviceOrientation = function() {
+      window.addEventListener("orientationchange", I);
+      window.addEventListener(e.orientationChangeEventName, g);
     };
+    
     this.connect = function() {
       I();
+        // Für Android: Versuche neue Orientierungsberechnung
+      if (isAndroid) {
+        e.initAndroidOrientation().then((success) => {
+          if (!success) {
+            // Fallback zu DeviceOrientationEvent
+            e.connectDeviceOrientation();
+          }
+        });
+        return;
+      }
+      
+      // Für iOS und andere Plattformen: Original-Verhalten
       if (
         window.DeviceOrientationEvent !== void 0 &&
         typeof window.DeviceOrientationEvent.requestPermission == "function"
       ) {
         if (e.enablePermissionDialog) {
           window.DeviceOrientationEvent.requestPermission().then((s) => {
-            s === "granted" && (window.addEventListener(
-              "orientationchange",
-              I
-            ), window.addEventListener(
-              e.orientationChangeEventName,
-              g
-            ));
+            s === "granted" && e.connectDeviceOrientation();
           }).catch(function(s) {
             console.error(
               "THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:",
@@ -365,34 +467,34 @@ class rt extends K {
             );
           });
         } else {
-          window.addEventListener(
-            "orientationchange",
-            I
-          ), window.addEventListener(
-            e.orientationChangeEventName,
-            g
-          );
-        }
-      } else {
-        window.addEventListener(
-          "orientationchange",
-          I
-        ), window.addEventListener(
-          e.orientationChangeEventName,
-          g
-        );
+          e.connectDeviceOrientation();
+        }      } else {
+        e.connectDeviceOrientation();
       }
-      e.enabled = !0;
-    }, this.disconnect = function() {
+      e.enabled = !0;    }, this.disconnect = function() {
+      // Android Sensoren stoppen
+      if (e.androidSensors && e.androidSensors.useAndroidOrientation && e.androidSensors.cleanup) {
+        try {
+          e.androidSensors.cleanup();
+        } catch (error) {
+          console.warn('Fehler beim Stoppen der Android Sensoren:', error);
+        }
+        e.androidSensors.useAndroidOrientation = false;
+        e.androidSensors.headingHistory = [];
+        e.androidSensors.stableHeading = 0;
+        e.androidSensors.lastUpdateTime = 0;
+      }
+      
+      // Standard DeviceOrientation Events entfernen
       window.removeEventListener(
         "orientationchange",
         I
       ), window.removeEventListener(
         e.orientationChangeEventName,
         g
-      ), e.enabled = !1, e.initialOffset = !1, e.deviceOrientation = null;
-    }, this.update = function({ theta: s = 0 } = { theta: 0 }) {
+      ), e.enabled = !1, e.initialOffset = !1, e.deviceOrientation = null;    }, this.update = function({ theta: s = 0 } = { theta: 0 }) {
     if (e.enabled === !1) return;
+    
     const o = e.deviceOrientation;
     if (o) {
       let a = o.alpha ? C.degToRad(o.alpha) + e.alphaOffset : 0, u = o.beta ? C.degToRad(o.beta) : 0, h = o.gamma ? C.degToRad(o.gamma) : 0;
@@ -426,21 +528,32 @@ class rt extends K {
         R(e.object.quaternion, a + s, this.smoothingFactor < 1 ? u - Math.PI : u, this.smoothingFactor < 1 ? h - this.HALF_PI : h, _);
       }
       8 * (1 - d.dot(e.object.quaternion)) > c && (d.copy(e.object.quaternion), e.dispatchEvent(it));
+    }  }, this.getCorrectedHeading = function() {
+    // Für Android mit verbesserter Orientierungsberechnung
+    if (isAndroid && e.androidSensors.useAndroidOrientation && e.androidSensors.stableHeading !== undefined) {
+      return e.androidSensors.stableHeading;
     }
-  }, this.getCorrectedHeading = function() {
+    
+    // Fallback für DeviceOrientation (iOS und andere)
     const { deviceOrientation: o } = e;
     if (!o) return 0;
     
     let heading = 0;
     
     if (z) {
+      // iOS: Nutze webkitCompassHeading (sehr präzise)
       heading = 360 - o.webkitCompassHeading;
       if (e.orientationOffset) {
         heading += e.orientationOffset * (180 / Math.PI);
         heading = (heading + 360) % 360;
       }
     } else {
-      heading = o.alpha ? o.alpha + e.alphaOffset * (180 / Math.PI) : 0;
+      // Android: Nutze alpha mit verbesserter Stabilisierung
+      if (isAndroid && e.androidSensors.stableHeading !== undefined) {
+        heading = e.androidSensors.stableHeading;
+      } else {
+        heading = o.alpha ? o.alpha + e.alphaOffset * (180 / Math.PI) : 0;
+      }
       if (heading < 0) heading += 360;
     }
     
