@@ -7,8 +7,8 @@
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
   />
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-DkqTaCwZ.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-9gT4a2nv.css">
+  <script type="module" crossorigin src="./assets/index-BztHgvGX.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BfyhleT2.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -128,32 +128,11 @@
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
         <circle cx="12" cy="12" r="3"></circle>
       </svg>
-    </button>
-
-    <!-- Settings Menu -->
+    </button>    <!-- Settings Menu -->
     <div id="settingsMenu" class="settings-menu">
       <div class="settings-menu__header">
         <button id="settingsClose" class="settings-menu__close">✕</button>
       </div>      <div class="settings-menu__content">
-      </div>
-    </div>
-
-    <!-- Debug Controls for Arrow Configuration -->
-    <div id="debugControls" class="debug-controls">
-      <h4>Arrow Debug (nur für Tests)</h4>
-      <div class="debug-section">
-        <label>Achsen:</label>
-        <button onclick="changeArrowConfig(1, this.offsetConfig || 'A')" class="debug-btn">1: x,z</button>
-        <button onclick="changeArrowConfig(2, this.offsetConfig || 'A')" class="debug-btn">2: z,x</button>
-        <button onclick="changeArrowConfig(3, this.offsetConfig || 'A')" class="debug-btn">3: x,-z</button>
-        <button onclick="changeArrowConfig(4, this.offsetConfig || 'A')" class="debug-btn">4: -x,-z</button>
-      </div>
-      <div class="debug-section">
-        <label>Offset:</label>
-        <button onclick="changeArrowConfig(this.axisConfig || 1, 'A')" class="debug-btn">A: +180°</button>
-        <button onclick="changeArrowConfig(this.axisConfig || 1, 'B')" class="debug-btn">B: 0°</button>
-        <button onclick="changeArrowConfig(this.axisConfig || 1, 'C')" class="debug-btn">C: -90°</button>
-        <button onclick="changeArrowConfig(this.axisConfig || 1, 'D')" class="debug-btn">D: +90°</button>
       </div>
     </div>
   </div>
