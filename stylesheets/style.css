@@ -840,7 +840,7 @@ input:checked + .toggle-slider:before {
   left: var(--spacing-md);
   z-index: var(--z-index-base);
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: flex-start;
 }
 
@@ -859,7 +859,7 @@ input:checked + .toggle-slider:before {
   transition: all var(--transition-base);
   color: var(--color-surface);
   font-size: var(--font-size-lg);
-  margin-bottom: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
 .map-toggle:hover {
