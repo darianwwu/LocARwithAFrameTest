@@ -734,6 +734,7 @@ canvas {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-xs) 0;
+  min-height: 32px;
 }
 
 .settings-text {
@@ -741,20 +742,25 @@ canvas {
   color: var(--color-surface);
   font-weight: var(--font-weight-normal);
   user-select: none;
+  flex: 1;
+  margin-right: var(--spacing-sm);
+  line-height: 1.3;
 }
 
 /* Toggle Switch */
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 40px;
-  height: 20px;
+  width: 42px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 .toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
+  position: absolute;
 }
 
 .toggle-slider {
@@ -764,30 +770,47 @@ canvas {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.3);
-  transition: var(--transition-base);
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all var(--transition-base);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: var(--color-surface);
-  transition: var(--transition-base);
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+  transition: all var(--transition-base);
   border-radius: 50%;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.toggle-slider:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 input:checked + .toggle-slider {
-  background-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(44, 95, 45, 0.2);
 }
 
 input:checked + .toggle-slider:before {
   transform: translateX(20px);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+input:focus + .toggle-slider {
+  outline: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(44, 95, 45, 0.3);
 }
 
 /* Color Picker */
@@ -795,17 +818,30 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+  flex-shrink: 0;
 }
 
 .color-input {
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: var(--radius-round);
+  width: 28px;
+  height: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   background: transparent;
   padding: 0;
   overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.color-input:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.color-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(44, 95, 45, 0.3);
 }
 
 .color-input::-webkit-color-swatch-wrapper {
@@ -909,9 +945,22 @@ input:checked + .toggle-slider:before {
 /* OpenLayers Map Styles */
 .ol-viewport {
   border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ol-viewport canvas {
+  border-radius: var(--radius-lg);
 }
 
 .ol-control {
+  display: none !important;
+}
+
+.ol-attribution {
+  display: none !important;
+}
+
+.ol-zoom {
   display: none !important;
 }
 
