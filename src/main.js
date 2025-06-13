@@ -6,6 +6,7 @@ import { CompassGUI } from './compassGUI.js';
 import { ARNavigationArrow } from './arNavigationArrow.js';
 import { TargetMarker } from './targetMarker.js';
 import { updateDistance } from './distanceOverlay.js';
+import { MapView } from './mapView.js';
 
 // Elemente
 const overlayContainer = document.getElementById('overlayContainer');
@@ -25,18 +26,20 @@ const gpsAccuracyValue  = document.querySelector('.gps-accuracy-value');
 // Settings-Elemente
 const settingsButton = document.getElementById('settingsButton');
 const settingsMenu = document.getElementById('settingsMenu');
-const settingsClose = document.getElementById('settingsClose');
 const toggleCompass = document.getElementById('toggleCompass');
 const toggleGPS = document.getElementById('toggleGPS');
+const toggleMap = document.getElementById('toggleMap');
 const arrowColorPicker = document.getElementById('arrowColorPicker');
 const colorPreview = document.getElementById('colorPreview');
 const compassContainer = document.getElementById('compassContainer');
 const gpsAccuracy = document.querySelector('.gps-accuracy');
+const mapContainer = document.getElementById('mapContainer');
 
 // State
 let sceneEl, renderer, cameraEl, threeCamera;
 let locar, controls;
 let compass, arrow;
+let mapView;
 let markers = [];
 let targetCoords = [];
 let indexActive = 0;
@@ -51,11 +54,26 @@ closeButton.addEventListener('click', () => {
 
 btnAdd.addEventListener('click', () => {
   console.log('Add marker clicked', lonInput.value, latInput.value);
-  targetCoords.push({
+  
+  const newMarker = {
     longitude: parseFloat(lonInput.value),
     latitude:  parseFloat(latInput.value),
     popupContent: 'Ziel aktualisiert!'
-  });
+  };
+  
+  targetCoords.push(newMarker);
+  
+  // Kartenmarker auch hinzufügen, wenn Karte bereits existiert
+  if (mapView) {
+    const isActive = targetCoords.length === 1; // Erster Marker ist automatisch aktiv
+    mapView.addTargetMarker(
+      newMarker.latitude,
+      newMarker.longitude,
+      newMarker.popupContent,
+      isActive
+    );
+  }
+  
   console.log('Current targetCoords:', targetCoords);
   showPopup('Marker hinzugefügt!', 1500);
 });
@@ -102,10 +120,22 @@ btnTest.addEventListener('click', async () => {
         longitude: currentCoords.longitude + 0.0081,
         popupContent: 'Testpunkt ~900m Nordost'
       }
-    ];
-
-    // Alle Marker auf einmal hinzufügen
+    ];    // Alle Marker auf einmal hinzufügen
     targetCoords.push(...newMarkers);
+    
+    // Kartenmarker auch hinzufügen, wenn Karte bereits existiert
+    if (mapView) {
+      newMarkers.forEach((marker, index) => {
+        const globalIndex = targetCoords.length - newMarkers.length + index;
+        const isActive = globalIndex === 0; // Erster Marker global ist aktiv
+        mapView.addTargetMarker(
+          marker.latitude,
+          marker.longitude,
+          marker.popupContent,
+          isActive
+        );
+      });
+    }
     
     showPopup('5 Marker hinzugefügt!', 1500);
   } catch (err) {
@@ -118,6 +148,9 @@ btnStart.addEventListener('click', async() => {
   console.log('Start button clicked');
   
   try {
+    // Vollbild-Modus aktivieren
+    await enterFullscreen();
+    
     // Starte Initialisierung
     const initProcess = init();
     
@@ -153,13 +186,16 @@ settingsButton.addEventListener('click', (e) => {
   settingsMenu.classList.toggle('settings-menu--visible');
 });
 
-settingsClose.addEventListener('click', () => {
-  settingsMenu.classList.remove('settings-menu--visible');
+// Verhindert das Schließen beim Klicken auf das Menü selbst
+settingsMenu.addEventListener('click', (e) => {
+  e.stopPropagation();
 });
 
-// Außerhalb des Menüs klicken um zu schließen
+// Außerhalb des Menüs klicken um zu schließen (nur wenn Menü geöffnet ist)
 document.addEventListener('click', (e) => {
-  if (!settingsMenu.contains(e.target) && !settingsButton.contains(e.target)) {
+  if (settingsMenu.classList.contains('settings-menu--visible') && 
+      !settingsMenu.contains(e.target) && 
+      !settingsButton.contains(e.target)) {
     settingsMenu.classList.remove('settings-menu--visible');
   }
 });
@@ -179,6 +215,15 @@ toggleGPS.addEventListener('change', (e) => {
     gpsAccuracy.style.display = 'flex';
   } else {
     gpsAccuracy.style.display = 'none';
+  }
+});
+
+// Karte Toggle
+toggleMap.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    mapContainer.style.display = 'flex';
+  } else {
+    mapContainer.style.display = 'none';
   }
 });
 
@@ -215,6 +260,26 @@ function updateArrowColor(color) {
 // Farbvorschau beim Laden initialisieren
 if (colorPreview) {
   colorPreview.style.background = arrowColorPicker.value;
+}
+
+/**
+ * Aktiviert den Vollbild-Modus
+ * @returns {Promise} Promise, das resolved wird, wenn Vollbild aktiviert wurde
+ */
+async function enterFullscreen() {
+  try {
+    if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+      await document.documentElement.webkitRequestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+      await document.documentElement.msRequestFullscreen();
+    }
+    console.log('Vollbild-Modus aktiviert');
+  } catch (error) {
+    console.warn('Vollbild-Modus konnte nicht aktiviert werden:', error);
+    // Nicht kritisch, Anwendung kann trotzdem fortfahren
+  }
 }
 
 /**
@@ -281,15 +346,32 @@ async function init() {
       smoothingFactor: 0.15,
       enablePermissionDialog: false
     });
-    
-    // LocAR Setup
+      // LocAR Setup
     const comp = cameraEl.components['locar-camera'];
     if (comp?.locar) {
       locar = comp.locar;
       locar.startGps();
     } else {
       throw new Error('locar-camera fehlt oder locar nicht initialisiert');
-    }    // Event Listeners
+    }    // MapView initialisieren mit Callback für Marker-Klicks
+    mapView = new MapView({
+      onMarkerClick: (index, title) => {
+        console.log('Map marker clicked:', index, title);
+        if (index !== indexActive) {
+          setActive(index);
+          showPopup('Ziel aktualisiert!', 2000);
+        } else {
+          showPopup(title, 3000);
+        }
+      },
+      onMapInitialized: () => {
+        // Wenn die Karte initialisiert wird, alle bestehenden Marker hinzufügen
+        console.log('Map initialized, adding existing markers...');
+        syncAllMarkersToMap();
+      }
+    });
+    
+    // Event Listeners
     cameraEl.addEventListener('gpsupdate', onGpsUpdate);
     renderer.setAnimationLoop(animate);
     
@@ -325,6 +407,11 @@ function onGpsUpdate(e) {
     } else {
       gpsIndicator.classList.add('gps-indicator--low');
     }
+  }
+
+  // Kartenposition aktualisieren
+  if (mapView) {
+    mapView.updateUserPosition(pos.latitude, pos.longitude);
   }
 
   // Alle UI-Elemente hinzufügen
@@ -436,6 +523,18 @@ function addMarker(data, i) {
   marker.initMarker('./images/map-marker.png');
   markers.push(marker);
   console.log('Markers array length:', markers.length);
+    // Marker auch zur Karte hinzufügen, falls sie bereits initialisiert ist
+  if (mapView && mapView.map) {
+    const isActive = i === indexActive;
+    console.log(`Adding single marker to map: ${data.popupContent || `Ziel ${i + 1}`}, active: ${isActive}`);
+    mapView.addTargetMarker(
+      data.latitude,
+      data.longitude,
+      data.popupContent || `Ziel ${i + 1}`,
+      isActive,
+      i  // Explizit den Index übergeben
+    );
+  }
 }
 
 /**
@@ -443,7 +542,15 @@ function addMarker(data, i) {
  */
 function addAllMarkers() {
   console.log('addAllMarkers, count:', targetCoords.length);
+  
+  // AR Marker hinzufügen
   targetCoords.forEach((d, i) => addMarker(d, i));
+  
+  // Zusätzliche Synchronisation mit der Karte, falls sie bereits existiert
+  if (mapView && mapView.map) {
+    console.log('Map exists, syncing all markers...');
+    syncAllMarkersToMap();
+  }
 }
 
 /**
@@ -453,10 +560,51 @@ function addAllMarkers() {
 function setActive(i) {
   console.log('setActive marker:', i);
   indexActive = i;
+  
+  // AR-Marker aktualisieren
   markers.forEach((m, idx) => {
     m.updateMarkerImage(
       idx === i
         ? './images/map-marker-rot.png'
         : './images/map-marker.png'
-    );  });
+    );
+  });
+  
+  // Karten-Marker aktualisieren
+  if (mapView) {
+    mapView.setActiveMarker(i);
+  }
+}
+
+/**
+ * Synchronisiert alle bestehenden AR-Marker mit der Karte
+ */
+function syncAllMarkersToMap() {
+  if (!mapView || !mapView.map) {
+    console.log('MapView or map not available for sync');
+    return;
+  }
+  
+  console.log(`Syncing ${targetCoords.length} markers to map...`);
+  
+  // Alle alten Karten-Marker entfernen
+  mapView.removeAllTargetMarkers();
+  
+  // Alle AR-Marker zur Karte hinzufügen
+  targetCoords.forEach((coords, index) => {
+    const isActive = index === indexActive;
+    console.log(`Syncing marker ${index}: ${coords.popupContent || `Ziel ${index + 1}`}, active: ${isActive}`);
+    mapView.addTargetMarker(
+      coords.latitude,
+      coords.longitude,
+      coords.popupContent || `Ziel ${index + 1}`,
+      isActive,
+      index  // Explizit den Index übergeben
+    );
+  });
+  
+  // Benutzerposition zur Karte hinzufügen, falls verfügbar
+  if (currentCoords.latitude && currentCoords.longitude) {
+    mapView.updateUserPosition(currentCoords.latitude, currentCoords.longitude);
+  }
 }
