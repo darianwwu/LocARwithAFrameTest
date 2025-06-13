@@ -668,7 +668,7 @@ canvas {
   position: fixed;
   bottom: 80px;
   right: var(--spacing-md);
-  width: 280px;
+  width: 180px;
   background: rgba(0, 0, 0, 0.9);
   backdrop-filter: blur(20px);
   border-radius: var(--radius-lg);
@@ -726,18 +726,18 @@ canvas {
 }
 
 .settings-item {
-  padding: var(--spacing-sm) var(--spacing-lg);
+  padding: var(--spacing-xs) var(--spacing-md);
 }
 
 .settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-sm) 0;
+  padding: var(--spacing-xs) 0;
 }
 
 .settings-text {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-surface);
   font-weight: var(--font-weight-normal);
   user-select: none;
@@ -747,8 +747,8 @@ canvas {
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 50px;
-  height: 24px;
+  width: 40px;
+  height: 20px;
 }
 
 .toggle-switch input {
@@ -766,14 +766,14 @@ canvas {
   bottom: 0;
   background-color: rgba(255, 255, 255, 0.3);
   transition: var(--transition-base);
-  border-radius: 24px;
+  border-radius: 20px;
 }
 
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 14px;
+  width: 14px;
   left: 3px;
   bottom: 3px;
   background-color: var(--color-surface);
@@ -787,19 +787,19 @@ input:checked + .toggle-slider {
 }
 
 input:checked + .toggle-slider:before {
-  transform: translateX(26px);
+  transform: translateX(20px);
 }
 
 /* Color Picker */
 .color-picker {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .color-input {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: none;
   border-radius: var(--radius-round);
   cursor: pointer;
@@ -830,6 +830,7 @@ input:checked + .toggle-slider:before {
   .settings-menu {
     width: calc(100vw - 2 * var(--spacing-md));
     right: var(--spacing-md);
+    max-width: 200px;
   }
 }
 
@@ -905,31 +906,27 @@ input:checked + .toggle-slider:before {
   border-radius: var(--radius-lg);
 }
 
-/* Leaflet Map Styles */
-.leaflet-container {
+/* OpenLayers Map Styles */
+.ol-viewport {
   border-radius: var(--radius-lg);
 }
 
-.leaflet-control-container {
-  display: none;
+.ol-control {
+  display: none !important;
 }
 
-.leaflet-popup-content-wrapper {
+.ol-popup {
   background: rgba(0, 0, 0, 0.9);
   color: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.leaflet-popup-tip {
-  background: rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.leaflet-popup-content {
-  margin: var(--spacing-sm);
+  padding: var(--spacing-sm);
   font-size: var(--font-size-sm);
   line-height: 1.4;
+}
+
+.ol-popup:after {
+  border-top-color: rgba(0, 0, 0, 0.9);
 }
 
 /* Responsive Map */
