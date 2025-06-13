@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta
+  <meta charset="UTF-8" />  <meta
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-  />
+  />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+    crossorigin=""/>
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-C6tdlXe6.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Df458-u9.css">
+  <script type="module" crossorigin src="./assets/index-CUm6DfpY.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-AtdbAlZS.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -113,7 +116,22 @@
       <div class="gps-text">
         GPS: <span class="gps-accuracy-value">~3m</span>
       </div>
-    </div>    <!-- Settings Button -->
+    </div>
+
+    <!-- Map Container -->
+    <div id="mapContainer" class="map-container">
+      <button id="mapToggle" class="map-toggle">
+        <svg class="map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </button>
+      <div id="mapView" class="map-view">
+        <div id="map" class="map-display"></div>
+      </div>
+    </div>
+
+    <!-- Settings Button -->
     <button id="settingsButton" class="settings-button">
       <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
@@ -186,8 +204,11 @@
           markerPopup.classList.remove('marker-popup--visible');
         }, duration);
       }
-    };
-  </script>
-
+    };  </script>
+
+  <!-- Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+    crossorigin=""></script>
 </body>
 </html>
