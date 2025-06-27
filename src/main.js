@@ -1,6 +1,6 @@
 import 'aframe';
 import './locar-aframenew.js';
-import { DeviceOrientationControlsOptional as DeviceOrientationControls } from './locarnew.js';
+import DeviceOrientationControls from './device-orientation-controls.js';
 import 'aframe-look-at-component';
 import { CompassGUI } from './compassGUI.js';
 import { ARNavigationArrow } from './arNavigationArrow.js';

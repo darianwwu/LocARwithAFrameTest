@@ -1,8 +1,5 @@
-import {
-  Webcam,
-  LocationBased,
-  DeviceOrientationControlsOptional as DeviceOrientationControls
-} from "./locarnew.js";
+import { Webcam, LocationBased } from "./locarnew.js";
+import DeviceOrientationControls from "./device-orientation-controls.js";
 
 AFRAME.registerComponent("locar-webcam", {
   schema: {
