@@ -29,8 +29,6 @@ const _euler = new Euler();
 const _q0 = new Quaternion();
 const _q1 = new Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
 
-const _changeEvent = { type: "change" };
-
 class DeviceOrientationControls extends EventDispatcher {
 /**
   * Create an instance of DeviceOrientationControls.
@@ -48,9 +46,6 @@ class DeviceOrientationControls extends EventDispatcher {
     }
 
     const scope = this;
-
-    //const EPS = 0.000001;
-    //const lastQuaternion = new Quaternion();
 
     this.object = object;
     this.object.rotation.reorder("YXZ");
@@ -101,6 +96,7 @@ class DeviceOrientationControls extends EventDispatcher {
     
     const onScreenOrientationChangeEvent = function () {
       scope.screenOrientation = window.orientation || 0;
+      //adds offsets for iOs
       if (isIOS) {
         if(scope.screenOrientation === 90) {
             scope.orientationOffset = -scope.HALF_PI;
@@ -134,13 +130,45 @@ class DeviceOrientationControls extends EventDispatcher {
      * Update the device orientation controls.
      * Should be called from your three.js rendering/animation function.
      */
-    this.connect = function() {
+    this.connect = function () {
       onScreenOrientationChangeEvent(); // run once on load
-      
-      // Event-Listener direkt registrieren (Permission bereits in main.js behandelt)
-      window.addEventListener("orientationchange", onScreenOrientationChangeEvent);
-      window.addEventListener(scope.orientationChangeEventName, onDeviceOrientationChangeEvent);
-      
+
+      // iOS 13+
+
+      if (
+        window.DeviceOrientationEvent !== undefined &&
+        typeof window.DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        window.DeviceOrientationEvent.requestPermission()
+          .then((response) => {
+            if (response === "granted") {
+              window.addEventListener(
+                "orientationchange",
+                onScreenOrientationChangeEvent,
+              );
+              window.addEventListener(
+                scope.orientationChangeEventName,
+                onDeviceOrientationChangeEvent,
+              );
+            }
+          })
+          .catch(function (error) {
+            console.error(
+              "THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:",
+              error,
+            );
+          });
+      } else {
+        window.addEventListener(
+          "orientationchange",
+          onScreenOrientationChangeEvent,
+        );
+        window.addEventListener(
+          scope.orientationChangeEventName,
+          onDeviceOrientationChangeEvent,
+        );
+      }
+
       scope.enabled = true;
     };
     
@@ -245,12 +273,6 @@ class DeviceOrientationControls extends EventDispatcher {
           orient
         );
       }
-      /** 
-      if (8 * (1 - lastQuaternion.dot(scope.object.quaternion)) > threshold) {
-        lastQuaternion.copy(scope.object.quaternion);
-        scope.dispatchEvent(changeEvent);
-      }
-        */
     }
   }
   
@@ -261,24 +283,24 @@ class DeviceOrientationControls extends EventDispatcher {
     let heading = 0;
     
     if (isIOS) {
-      // iOS nutzt immer den zuverlässigen webkitCompassHeading
+      // iOS always uses webkitCompassHeading
       heading = 360 - device.webkitCompassHeading;
       if (scope.orientationOffset) {
         heading += scope.orientationOffset * (180 / Math.PI);
         heading = (heading + 360) % 360;
       }
     } else {
-      // Android: Prüfen ob wir absolute Werte haben
-      const isAbsolute = device.absolute === true || 
-                        scope.orientationChangeEventName === "deviceorientationabsolute";
+      // Android: Check if we have absolute values
+      const isAbsolute = device.absolute === true ||
+        scope.orientationChangeEventName === "deviceorientationabsolute";
       heading = device.alpha ? device.alpha : 0;
       if (isAbsolute) {
-        // Bei absoluten Werten können wir den alpha-Wert direkt als Kompass-Heading verwenden
-        // aber möglicherweise mit einem System-spezifischen Offset
-        // Umkehren wie bei iOS, falls alpha im Uhrzeigersinn zunimmt
-        //heading = 360 - heading;
+        // With absolute values, we can use the alpha value directly as compass heading
+        // but possibly with a system-specific offset
+        // Reverse like iOS if alpha increases clockwise
+        // heading = 360 - heading;
       }
-      // Drehrichtung für Android invertieren
+      // Reverse direction for Android
       heading = (360 - heading) % 360;
       if (heading < 0) heading += 360;
     }
@@ -350,11 +372,6 @@ class DeviceOrientationControls extends EventDispatcher {
   if (isiOSWithReq && scope.enablePermissionDialog) {
     scope.initPermissionDialog();
   }
-  /** 
-  else if (!isiOSWithReq) {
-    scope.connect();
-  }
-    */
   }
   
   // Provide gesture before initialising device orientation controls
@@ -430,5 +447,4 @@ class DeviceOrientationControls extends EventDispatcher {
     document.body.appendChild(startModal);
   }
 }
-
 export default DeviceOrientationControls;

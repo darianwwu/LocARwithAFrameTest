@@ -122,21 +122,13 @@ export class ARNavigationArrow {
     const targetAngle = Math.atan2(direction.x, direction.z);
 
     // Verwende die korrigierte Heading-Methode (in Radians)
-    const userHeading = this.deviceOrientationControl.getCorrectedHeading() * (Math.PI / 180);
-    let relativeAngle = 0;
-    if(this.isIOS) {
-      relativeAngle = targetAngle - userHeading;
-    }
-    else {
-      relativeAngle = targetAngle + userHeading;
-    }
-    relativeAngle += Math.PI;
+    const cameraDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+    const userHeading = Math.atan2(cameraDirection.x, cameraDirection.z); // in Radiant
+    let relativeAngle = targetAngle - userHeading;
     relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
-    
-    // Konvertiere zu Grad für Schwellenwert-Vergleich
+
     const relativeAngleDeg = relativeAngle * (180 / Math.PI);
-    
-    // Nur aktualisieren wenn sich der Winkel signifikant geändert hat
+
     if (Math.abs(relativeAngleDeg - this.lastAngle) > this.angleThreshold) {
       this.arrowObject.rotation.set(0, relativeAngle, 0);
       this.lastAngle = relativeAngleDeg;
