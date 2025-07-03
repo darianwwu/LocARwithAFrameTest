@@ -123,8 +123,13 @@ export class ARNavigationArrow {
 
     // Verwende die korrigierte Heading-Methode (in Radians)
     const userHeading = this.deviceOrientationControl.getCorrectedHeading() * (Math.PI / 180);
-
-    let relativeAngle = targetAngle - userHeading;
+    let relativeAngle = 0;
+    if(this.isIOS) {
+      relativeAngle = targetAngle - userHeading;
+    }
+    else {
+      relativeAngle = targetAngle + userHeading;
+    }
     relativeAngle += Math.PI;
     relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
     

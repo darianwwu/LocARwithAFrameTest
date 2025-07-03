@@ -276,7 +276,7 @@ class DeviceOrientationControls extends EventDispatcher {
         // Bei absoluten Werten können wir den alpha-Wert direkt als Kompass-Heading verwenden
         // aber möglicherweise mit einem System-spezifischen Offset
         // Umkehren wie bei iOS, falls alpha im Uhrzeigersinn zunimmt
-        heading = 360 - heading;
+        //heading = 360 - heading;
       }
       // Drehrichtung für Android invertieren
       heading = (360 - heading) % 360;
