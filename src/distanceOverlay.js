@@ -27,9 +27,10 @@ export function computeDistance(lat1, lon1, lat2, lon2) {
  * @param {*} currentCoords Aktuelle GPS-Koordinaten des Users
  * @param {*} targetCoords Ziel-GPS-Koordinaten
  * @param {*} distanceOverlay UI-Element, in dem die Distanz angezeigt wird
+ * @param {*} options Optionen für die Anzeige (mode: 'distance', 'minutes', 'both')
  * @returns 
  */
-export function updateDistance(currentCoords, targetCoords, distanceOverlay) {
+export function updateDistance(currentCoords, targetCoords, distanceOverlay, options = {}) {
   if (currentCoords.longitude === null || currentCoords.latitude === null) return;
   const distance = computeDistance(
     currentCoords.latitude,
@@ -38,13 +39,48 @@ export function updateDistance(currentCoords, targetCoords, distanceOverlay) {
     targetCoords.longitude
   );
 
-  // Wenn Entfernung größer als 1000 m, in km anzeigen
-  if (distance >= 1000) {
-    const km = distance / 1000;
-    // Formatieren auf eine Nachkommastelle
-    const kmString = km.toFixed(1).replace('.', ',');
-    distanceOverlay.innerText = `${kmString} km`;
+  // Optionale Anzeigeart: 'distance', 'minutes', 'both'
+  const mode = options.mode || 'distance';
+  
+  if (mode === 'minutes') {
+    const walkingTime = calculateWalkingTime(distance);
+    distanceOverlay.innerText = walkingTime;
+  } else if (mode === 'both') {
+    let distString;
+    if (distance >= 1000) {
+      const km = distance / 1000;
+      distString = `${km.toFixed(1).replace('.', ',')} km`;
+    } else {
+      distString = `${Math.round(distance)} m`;
+    }
+    const walkingTime = calculateWalkingTime(distance);
+    distanceOverlay.innerText = `${distString} / ${walkingTime}`;
   } else {
-    distanceOverlay.innerText = `${Math.round(distance)} m`;
+    // Standard: nur Distanz
+    if (distance >= 1000) {
+      const km = distance / 1000;
+      const kmString = km.toFixed(1).replace('.', ',');
+      distanceOverlay.innerText = `${kmString} km`;
+    } else {
+      distanceOverlay.innerText = `${Math.round(distance)} m`;
+    }
+  }
+}
+
+/**
+ * Berechnet die Gehzeit in Minuten für eine gegebene Distanz
+ * @param {number} distance - Distanz in Metern
+ * @returns {string} Formatierte Gehzeit (z.B. "5 Gehminuten" oder "1 Gehminute")
+ */
+export function calculateWalkingTime(distance) {
+  // Durchschnittliche Gehgeschwindigkeit in m/s (ca. 1,4 m/s)
+  // Etwas verringert, da Fortbewegung im Wald und ohne direkte Strecke langsamer ist.
+  const averageWalkingSpeed = 1;
+  const timeInMinutes = Math.round(distance / averageWalkingSpeed / 60);
+
+  if (timeInMinutes <= 1) {
+    return '1 min';
+  } else {
+    return `${timeInMinutes} min`;
   }
 }

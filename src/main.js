@@ -43,6 +43,7 @@ let mapView;
 let markers = [];
 let targetCoords = [];
 let indexActive = 0;
+let distanceMode = 'distance'; // 'distance', 'minutes', 'both'
 const currentCoords = { latitude: null, longitude: null };
 let screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
 const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i);
@@ -324,6 +325,33 @@ if (colorPreview) {
 }
 
 /**
+ * Event-Listener für das Distanz-Overlay zum Umschalten zwischen den Anzeigemodi
+ * Optionen: 'distance' (Standard), 'minutes', 'both'
+ */
+if (distanceOverlay) {
+  distanceOverlay.style.cursor = 'pointer';
+  distanceOverlay.title = 'Klicken zum Umschalten zwischen Meter/Gehminuten';
+  
+  distanceOverlay.addEventListener('click', () => {
+    // Durch die Modi cyceln: distance → minutes → both → distance
+    if (distanceMode === 'distance') {
+      distanceMode = 'minutes';
+    } else if (distanceMode === 'minutes') {
+      distanceMode = 'both';
+    } else {
+      distanceMode = 'distance';
+    }
+    
+    // Sofort die Anzeige aktualisieren
+    if (targetCoords[indexActive]) {
+      updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
+    }
+    
+    console.log('Distance mode changed to:', distanceMode);
+  });
+}
+
+/**
  * Aktiviert den Vollbild-Modus
  * Auf iOs Geräten wird der Vollbild-Modus nicht immer unterstützt
  * @returns {Promise} Promise, das resolved wird, wenn Vollbild aktiviert wurde
@@ -493,7 +521,7 @@ function onGpsUpdate(e) {
       });
     }
     
-    updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay);
+    updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
   } catch (err) {
     handleGpsError(err);
   }
@@ -529,7 +557,7 @@ function animate() {
     }
   }
 
-  updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay);
+  updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
 
   // Nur rendern, wenn erforderlich
   if (renderer && threeCamera) {
