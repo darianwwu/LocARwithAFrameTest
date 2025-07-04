@@ -33,6 +33,7 @@ export class ARNavigationArrow {
     this.updateThreshold = 50; // Minimum ms zwischen Updates
     this.angleThreshold = 2; // Minimum Grad Änderung für Update
   }
+
   /**
    * Initialisiert den AR-Navigationspfeil mit dem angegebenen Modellpfad.
    * @param {*} modelPath Pfad zum GLTF-Modell des Pfeils
@@ -45,6 +46,7 @@ export class ARNavigationArrow {
       onLoadCallback();
     });
   }
+
   setupArrow() {
     this.arrowObject.scale.set(0.2, 0.2, 0.2);
     // Frustum Culling deaktivieren, damit der Pfeil immer sichtbar ist
@@ -106,6 +108,7 @@ export class ARNavigationArrow {
       this.toggleTransparency();
     }
   }
+
   /**
    * Aktualisiert die Position und Rotation des Pfeils basierend auf den aktuellen Koordinaten und der Ausrichtung des Geräts.
    * @returns {void}
@@ -146,6 +149,7 @@ export class ARNavigationArrow {
       this.lastUpdate = now;
     }
   }
+  
   /**
    * Entfernt den AR-Navigationspfeil und alle zugehörigen Event-Listener.
    */

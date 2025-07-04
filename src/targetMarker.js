@@ -39,6 +39,7 @@ export class TargetMarker {
     this.markerAdded = true;
     this.originalMarkerPosition.copy(this.markerObject.position);
   }
+  
   /**
    * Ändert das (Erscheinungs-)Bild des Markers.
    * @param {*} newImageUrl Bild-URL

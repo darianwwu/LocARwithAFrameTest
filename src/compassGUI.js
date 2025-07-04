@@ -7,6 +7,7 @@
 export function addCompassToScene(params) {
   return new CompassGUI(params);
 }
+
 export class CompassGUI {
   constructor({ deviceOrientationControl, compassArrowId, compassTextId, compassDirectionsId, getScreenOrientation}) {
     this.deviceOrientationControl = deviceOrientationControl;
@@ -15,6 +16,7 @@ export class CompassGUI {
     this.compassDirections = document.getElementById(compassDirectionsId);
     this.getScreenOrientation = getScreenOrientation;
   }
+  
   /**
    * Aktualisiert die GUI-Elemente (Pfeil und Zahl) des Kompasses
    * @returns {void}

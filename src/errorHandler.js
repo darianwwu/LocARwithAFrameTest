@@ -1,5 +1,3 @@
-// Zentrale Fehlerbehandlung für AR Navigation
-
 /**
  * Zeigt ein zentrales Popup für Fehler- und Statusmeldungen an.
  * @param {string} text - Anzuzeigender Text

@@ -18,7 +18,6 @@ const btnAdd           = document.getElementById('btnAddMarker');
 const btnStart         = document.getElementById('btnStart');
 const btnTest          = document.getElementById('btnTestAdd');
 const markerPopup      = document.getElementById('markerPopup');
-const markerPopupText  = document.getElementById('markerPopupText');
 const closeButton      = document.getElementById('popupClose');
 const distanceOverlay  = document.getElementById('distance-overlay');
 const gpsIndicator      = document.querySelector('.gps-indicator');
@@ -48,19 +47,25 @@ const currentCoords = { latitude: null, longitude: null };
 let screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
 const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i);
 
-// UI-Event-Handler
+/**
+ * Schließt ein Popup, wenn auf den Schließen-Button des Popups geklickt wird.
+ */
 closeButton.addEventListener('click', () => {
   markerPopup.classList.remove('marker-popup--visible');
 });
 
+/**
+ * Button zum Hinzufügen einzelner Zielpunkte über die Eingabefelder "latitude" und "longitude"
+ * Die Werte werden validiert (für WGS84-Koordinaten: -90 <= lat <= 90 und -180 <= lon <= 180)
+ * Nur wenn sie gültig sind, wird das Ziel dem Array targetCoords angehängt.
+ */
 btnAdd.addEventListener('click', () => {
-  console.log('Add marker clicked', lonInput.value, latInput.value);
 
   const lon = parseFloat(lonInput.value);
   const lat = parseFloat(latInput.value);
 
-  // Validierung für WGS84-Koordinaten
-  if (isNaN(lon) || isNaN(lat) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+  // Validierung der Werte von lat und lon
+  if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
     showPopup('Ungültige Koordinaten!', 3000);
     return;
   }
@@ -73,7 +78,7 @@ btnAdd.addEventListener('click', () => {
 
   targetCoords.push(newMarker);
 
-  // Kartenmarker auch hinzufügen, wenn Karte bereits existiert
+  // Zusätzlich zum AR Marker auch Kartenmarker hinzufügen, wenn Karte bereits existiert
   if (mapView) {
     const isActive = targetCoords.length === 1; // Erster Marker ist automatisch aktiv
     mapView.addTargetMarker(
@@ -88,9 +93,13 @@ btnAdd.addEventListener('click', () => {
   showPopup('Marker hinzugefügt!', 1500);
 });
 
-// Test-Button zum Hinzufügen von Testmarkern, wird in der produktiven Version entfernt
+// Test-Button zum Hinzufügen von Testzielen, wird in der produktiven Version entfernt
+/**
+ * Fügt 5 Ziele in der Nähe der aktuellen Position hinzu, um die Funktionalität zu testen.
+ * Die Werte werden ans Array targetCoords angehängt.
+ */
 btnTest.addEventListener('click', async () => {
-  // Für Test Button aktuelle Position abrufen um Testpunkte zu setzen
+  // Aktuelle Position abrufen um Koordinaten der Testziele zu berechnen
   try {
     const pos = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -103,7 +112,7 @@ btnTest.addEventListener('click', async () => {
     currentCoords.longitude = pos.coords.longitude;
     console.log('Aktuelle Koordinaten gesetzt:', currentCoords);
 
-    // Testpunkte vordefinieren und in einem Batch erstellen
+    // Testziele vordefinieren und in einem Batch erstellen
     const newMarkers = [
       { 
         latitude: currentCoords.latitude + 0.00027,
@@ -130,7 +139,7 @@ btnTest.addEventListener('click', async () => {
         longitude: currentCoords.longitude + 0.0081,
         popupContent: 'Testpunkt ~900m Nordost'
       }
-    ];    // Alle Marker auf einmal hinzufügen
+    ];    // Alle Ziele auf einmal hinzufügen
     targetCoords.push(...newMarkers);
     
     // Kartenmarker auch hinzufügen, wenn Karte bereits existiert
@@ -147,6 +156,7 @@ btnTest.addEventListener('click', async () => {
       });
     }
     
+    // Popup anzeigen für Nutzendenfeedback
     showPopup('5 Marker hinzugefügt!', 1500);
   } catch (err) {
     console.error('Fehler beim Abrufen der aktuellen Position:', err);
@@ -154,6 +164,10 @@ btnTest.addEventListener('click', async () => {
   }
 });
 
+/**
+ * Startet den AR-Modus. Prüft ob mindestens ein Ziel im Array targetCoords vorhanden ist und zeigt ansonsten ein Popup an.
+ * Prüft weitere Berechtigungen und zeigt gegebenenfalls Fehlermeldungen an.
+ */
 btnStart.addEventListener('click', async() => {
   console.log('Start button clicked');
   
@@ -164,15 +178,15 @@ btnStart.addEventListener('click', async() => {
       return;
     }
 
-    // Optional: check browser support before starting
+    // Browser-Support prüfen
     if (!checkBrowserSupport()) {
       return;
     }
 
-    // Starte Initialisierung
+    // Initialisierung starten
     const initProcess = init();
 
-    // Parallel dazu: Device Orientation Permissions
+    // Parallel dazu: Device Orientation Permissions anfordern (an dieser Stelle, da iOs dafür eine Nutzerinteraktion braucht)
     let permissionPromise = Promise.resolve();
     if (window.DeviceOrientationEvent?.requestPermission) {
       permissionPromise = DeviceOrientationEvent.requestPermission()
@@ -190,7 +204,7 @@ btnStart.addEventListener('click', async() => {
     // Warte auf beide Prozesse
     await Promise.all([initProcess, permissionPromise]);
 
-    // Verbinde Controls und zeige AR-Container
+    // Verbinde Controls und zeige AR-Container an
     controls.connect();
     overlayContainer.style.display = 'none';
     arContainer.style.display = 'block';
@@ -206,18 +220,25 @@ btnStart.addEventListener('click', async() => {
   }
 });
 
-// Settings Event Listeners
+/**
+ * Toggle für die Sichtbarkeit des Einstellungen-Menüs
+ */
 settingsButton.addEventListener('click', (e) => {
   e.stopPropagation(); // Verhindert das Schließen durch document-click
   settingsMenu.classList.toggle('settings-menu--visible');
 });
 
-// Verhindert das Schließen beim Klicken auf das Menü selbst
+/**
+ * Sorgt dafür, dass das Einstellungen-Menü nicht geschlossen wird, wenn auf das Menü selbst geklickt wird.
+ * Teil der Funktionalität, die das Menü schließt, wenn außerhalb geklickt wird.
+ */
 settingsMenu.addEventListener('click', (e) => {
   e.stopPropagation();
 });
 
-// Außerhalb des Menüs klicken um zu schließen (nur wenn Menü geöffnet ist)
+/**
+ * Schließt das Einstellungen-Menü, wenn außerhalb des Menüs geklickt wird.
+ */
 document.addEventListener('click', (e) => {
   if (settingsMenu.classList.contains('settings-menu--visible') && 
       !settingsMenu.contains(e.target) && 
@@ -226,7 +247,9 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Kompass Toggle
+/**
+ * Toggle für die Sichtbarkeit des Kompasses
+ */
 toggleCompass.addEventListener('change', (e) => {
   if (e.target.checked) {
     compassContainer.style.display = 'flex';
@@ -235,7 +258,9 @@ toggleCompass.addEventListener('change', (e) => {
   }
 });
 
-// GPS Accuracy Toggle
+/**
+ * Toggle für die Sichtbarkeit der GPS-Genauigkeit
+ */
 toggleGPS.addEventListener('change', (e) => {
   if (e.target.checked) {
     gpsAccuracy.style.display = 'flex';
@@ -244,7 +269,9 @@ toggleGPS.addEventListener('change', (e) => {
   }
 });
 
-// Karte Toggle
+/**
+ * Toggle für die Sichtbarkeit der Karte
+ */
 toggleMap.addEventListener('change', (e) => {
   if (e.target.checked) {
     mapContainer.style.display = 'flex';
@@ -253,7 +280,11 @@ toggleMap.addEventListener('change', (e) => {
   }
 });
 
-// Farbauswahl für Navigationspfeil
+/**
+ * Farbwähler für die Pfeilfarbe im Einstellungen-Menü.
+ * Nutzt das HTML Element <input type="color">, das einen Standard-Browser-Farbwähler öffnet.
+ * Mit Klick auf eine Farbe wird die Farbe des Navigationspfeils durch einen Aufruf von updateArrowColor() geändert.
+ */
 arrowColorPicker.addEventListener('change', (e) => {
   const selectedColor = e.target.value;
   
@@ -265,11 +296,15 @@ arrowColorPicker.addEventListener('change', (e) => {
     updateArrowColor(selectedColor);
   }
   
-  // Farbe für zukünftige Pfeile speichern
+  // Farbe für zukünftige Initialisierung speichern
   window.selectedArrowColor = selectedColor;
 });
 
-// Funktion zum Aktualisieren der Pfeilfarbe
+/**
+ * Aktualisiert die Farbe des Navigationspfeils.
+ * @param {string} color - Die neue Farbe im Hex-Format.
+ * @returns {void}
+ */
 function updateArrowColor(color) {
   if (!window.arrow || !window.arrow.arrowObject) return;
   
@@ -290,6 +325,7 @@ if (colorPreview) {
 
 /**
  * Aktiviert den Vollbild-Modus
+ * Auf iOs Geräten wird der Vollbild-Modus nicht immer unterstützt
  * @returns {Promise} Promise, das resolved wird, wenn Vollbild aktiviert wurde
  */
 async function enterFullscreen() {
@@ -399,7 +435,11 @@ async function init() {
 }
 
 /**
- * GPS-Update
+ * GPS-Update-Handler
+ * Bekommt die aktuelle GPS-Position und Genauigkeit und aktualisiert die GPS-Genauigkeitsanzeige, Kartenposition
+ * und die AR Elemente.
+ * Fügt AR und UI Elemente initial hinzu, wenn sie noch nicht existieren.
+ * 
  */
 function onGpsUpdate(e) {
   console.log('gpsupdate event:', e.detail.position);
@@ -431,7 +471,7 @@ function onGpsUpdate(e) {
       mapView.updateUserPosition(pos.latitude, pos.longitude);
     }
 
-    // Alle UI-Elemente hinzufügen
+    // Alle UI-Elemente hinzufügen, wenn sie noch nicht existieren
     if (targetCoords.length && markers.length === 0) {
       addCompass();
       addArrow();
@@ -461,6 +501,7 @@ function onGpsUpdate(e) {
 
 /**
  * Haupt-Animationsschleife, die regelmäßig aufgerufen wird, aktualisiert die Eigenschaften der AR-Elemente.
+ * Dreht die Karte mit, wenn mapView und controls existieren.
  */
 function animate() {
   if (controls) controls.update();
@@ -633,7 +674,7 @@ function syncAllMarkersToMap() {
     );
   });
   
-  // Benutzerposition zur Karte hinzufügen, falls verfügbar
+  // Benutzendenposition zur Karte hinzufügen, falls verfügbar
   if (currentCoords.latitude && currentCoords.longitude) {
     mapView.updateUserPosition(currentCoords.latitude, currentCoords.longitude);
   }
