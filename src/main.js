@@ -2,11 +2,12 @@ import 'aframe';
 import './locar-aframenew.js';
 import DeviceOrientationControls from './device-orientation-controls.js';
 import 'aframe-look-at-component';
-import { CompassGUI } from './compassGUI.js';
-import { ARNavigationArrow } from './arNavigationArrow.js';
+import { CompassGUI, addCompassToScene } from './compassGUI.js';
+import { ARNavigationArrow, addArrowToScene } from './arNavigationArrow.js';
 import { TargetMarker } from './targetMarker.js';
 import { updateDistance } from './distanceOverlay.js';
 import { MapView } from './mapView.js';
+import { showPopup, handleCameraError, handleGpsError, handleSensorError, checkBrowserSupport, checkSensorAvailability, handleGenericError } from './errorHandler.js';
 
 // Elemente
 const overlayContainer = document.getElementById('overlayContainer');
@@ -54,15 +55,24 @@ closeButton.addEventListener('click', () => {
 
 btnAdd.addEventListener('click', () => {
   console.log('Add marker clicked', lonInput.value, latInput.value);
-  
+
+  const lon = parseFloat(lonInput.value);
+  const lat = parseFloat(latInput.value);
+
+  // Validierung für WGS84-Koordinaten
+  if (isNaN(lon) || isNaN(lat) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    showPopup('Ungültige Koordinaten!', 3000);
+    return;
+  }
+
   const newMarker = {
-    longitude: parseFloat(lonInput.value),
-    latitude:  parseFloat(latInput.value),
+    longitude: lon,
+    latitude:  lat,
     popupContent: 'Ziel aktualisiert!'
   };
-  
+
   targetCoords.push(newMarker);
-  
+
   // Kartenmarker auch hinzufügen, wenn Karte bereits existiert
   if (mapView) {
     const isActive = targetCoords.length === 1; // Erster Marker ist automatisch aktiv
@@ -73,7 +83,7 @@ btnAdd.addEventListener('click', () => {
       isActive
     );
   }
-  
+
   console.log('Current targetCoords:', targetCoords);
   showPopup('Marker hinzugefügt!', 1500);
 });
@@ -140,7 +150,7 @@ btnTest.addEventListener('click', async () => {
     showPopup('5 Marker hinzugefügt!', 1500);
   } catch (err) {
     console.error('Fehler beim Abrufen der aktuellen Position:', err);
-    showPopup('Fehler beim Abrufen der aktuellen Position', 3000);
+    handleGpsError(err);
   }
 });
 
@@ -148,35 +158,51 @@ btnStart.addEventListener('click', async() => {
   console.log('Start button clicked');
   
   try {
-    // Vollbild-Modus aktivieren
-    await enterFullscreen();
-    
+    // Prüfe, ob mindestens ein Ziel vorhanden ist
+    if (!targetCoords || targetCoords.length === 0) {
+      showPopup('Bitte mindestens ein Ziel hinzufügen!', 3000);
+      return;
+    }
+
+    // Optional: check browser support before starting
+    if (!checkBrowserSupport()) {
+      return;
+    }
+
     // Starte Initialisierung
     const initProcess = init();
-    
+
     // Parallel dazu: Device Orientation Permissions
     let permissionPromise = Promise.resolve();
     if (window.DeviceOrientationEvent?.requestPermission) {
       permissionPromise = DeviceOrientationEvent.requestPermission()
         .then(result => {
           if (result !== "granted") {
-            throw new Error("Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.");
+            throw { name: 'NotAllowedError', message: 'Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.' };
           }
+        })
+        .catch(err => {
+          handleSensorError(err);
+          throw err;
         });
     }
-    
+
     // Warte auf beide Prozesse
     await Promise.all([initProcess, permissionPromise]);
-    
+
     // Verbinde Controls und zeige AR-Container
     controls.connect();
     overlayContainer.style.display = 'none';
     arContainer.style.display = 'block';
-    
+
     console.log('AR-Modus erfolgreich gestartet');
   } catch (err) {
     console.error("Fehler beim Starten des AR-Modus:", err);
-    showPopup('Fehler beim Starten des AR-Modus', 3000);
+    if (err && err.name === 'NotAllowedError') {
+      handleSensorError(err);
+    } else {
+      handleGenericError(err);
+    }
   }
 });
 
@@ -283,23 +309,6 @@ async function enterFullscreen() {
 }
 
 /**
- * Hilfsfunktion, um ein Popup anzuzeigen.
- * @param {*} text Der Text, der im Popup angezeigt werden soll
- * @param {*} d Die Dauer in Millisekunden, nach der das Popup automatisch geschlossen wird (0 für kein automatisches Schließen)
- */
-function showPopup(text, d) {
-  markerPopupText.textContent = text;
-  markerPopup.classList.add('marker-popup--visible');
-  if (d > 0) {
-    setTimeout(() => {
-      markerPopup.classList.remove('marker-popup--visible');
-    }, d);
-  }
-}
-
-// AR-Szene initialisieren
-
-/**
  * Initialisiert die AR-Szene, setzt die Kamera und registriert Event-Listener.
  * @returns {Promise} Promise, das resolved wird, wenn die Initialisierung abgeschlossen ist
  */
@@ -346,14 +355,20 @@ async function init() {
       smoothingFactor: 0.15,
       enablePermissionDialog: false
     });
-      // LocAR Setup
+    // LocAR Setup
     const comp = cameraEl.components['locar-camera'];
     if (comp?.locar) {
       locar = comp.locar;
-      locar.startGps();
+      try {
+        locar.startGps();
+      } catch (err) {
+        handleGpsError(err);
+      }
     } else {
+      handleGenericError(new Error('locar-camera fehlt oder locar nicht initialisiert'));
       throw new Error('locar-camera fehlt oder locar nicht initialisiert');
-    }    // MapView initialisieren mit Callback für Marker-Klicks
+    }
+    // MapView initialisieren mit Callback für Marker-Klicks
     mapView = new MapView({
       onMarkerClick: (index, title) => {
         console.log('Map marker clicked:', index, title);
@@ -378,6 +393,7 @@ async function init() {
     console.log('AR-Szene erfolgreich initialisiert');
   } catch (error) {
     console.error('Fehler bei der Initialisierung:', error);
+    handleGenericError(error);
     throw error;
   }
 }
@@ -387,56 +403,60 @@ async function init() {
  */
 function onGpsUpdate(e) {
   console.log('gpsupdate event:', e.detail.position);
-  const pos = e.detail.position.coords;
-  currentCoords.latitude  = pos.latitude;
-  currentCoords.longitude = pos.longitude;
-  console.log('currentCoords:', currentCoords);
+  try {
+    const pos = e.detail.position.coords;
+    currentCoords.latitude  = pos.latitude;
+    currentCoords.longitude = pos.longitude;
+    console.log('currentCoords:', currentCoords);
 
-  const accuracy = pos.accuracy; // in Metern
-  if (gpsAccuracyValue && gpsIndicator) {
-    // Text aktualisieren:
-    gpsAccuracyValue.innerText = `~${Math.round(accuracy)}m`;
+    const accuracy = pos.accuracy; // in Metern
+    if (gpsAccuracyValue && gpsIndicator) {
+      // Text aktualisieren:
+      gpsAccuracyValue.innerText = `~${Math.round(accuracy)}m`;
 
-    // Klasse setzen je nach Schwellenwert:
-    // <5m = high, <15m = medium, sonst low
-    gpsIndicator.classList.remove('gps-indicator--high', 'gps-indicator--medium', 'gps-indicator--low');
-    if (accuracy < 5) {
-      gpsIndicator.classList.add('gps-indicator--high');
-    } else if (accuracy < 15) {
-      gpsIndicator.classList.add('gps-indicator--medium');
-    } else {
-      gpsIndicator.classList.add('gps-indicator--low');
-    }
-  }
-
-  // Kartenposition aktualisieren
-  if (mapView) {
-    mapView.updateUserPosition(pos.latitude, pos.longitude);
-  }
-
-  // Alle UI-Elemente hinzufügen
-  if (targetCoords.length && markers.length === 0) {
-    addCompass();
-    addArrow();
-    addAllMarkers();
-    setActive(0);
-  }
-
-  if (arrow) arrow.update();
-  
-  // Sicherstellen, dass Marker aktualisiert werden, wenn sie existieren
-  if (markers.length > 0) {
-    markers.forEach(m => {
-      // Überprüfen, ob das Marker-Objekt noch existiert
-      if (m.markerObject && m.markerObject.parent) {
-        m.update();
+      // Klasse setzen je nach Schwellenwert:
+      // <5m = high, <15m = medium, sonst low
+      gpsIndicator.classList.remove('gps-indicator--high', 'gps-indicator--medium', 'gps-indicator--low');
+      if (accuracy < 5) {
+        gpsIndicator.classList.add('gps-indicator--high');
+      } else if (accuracy < 15) {
+        gpsIndicator.classList.add('gps-indicator--medium');
       } else {
-        console.warn('Marker exists but markerObject is detached or missing');
+        gpsIndicator.classList.add('gps-indicator--low');
       }
-    });
+    }
+
+    // Kartenposition aktualisieren
+    if (mapView) {
+      mapView.updateUserPosition(pos.latitude, pos.longitude);
+    }
+
+    // Alle UI-Elemente hinzufügen
+    if (targetCoords.length && markers.length === 0) {
+      addCompass();
+      addArrow();
+      addAllMarkers();
+      setActive(0);
+    }
+
+    if (arrow) arrow.update();
+    
+    // Sicherstellen, dass Marker aktualisiert werden, wenn sie existieren
+    if (markers.length > 0) {
+      markers.forEach(m => {
+        // Überprüfen, ob das Marker-Objekt noch existiert
+        if (m.markerObject && m.markerObject.parent) {
+          m.update();
+        } else {
+          console.warn('Marker exists but markerObject is detached or missing');
+        }
+      });
+    }
+    
+    updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay);
+  } catch (err) {
+    handleGpsError(err);
   }
-  
-  updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay);
 }
 
 /**
@@ -444,9 +464,9 @@ function onGpsUpdate(e) {
  */
 function animate() {
   if (controls) controls.update();
-  
+
   if (arrow) arrow.update();
-  
+
   // Marker aktualisieren, wenn sie existieren
   if (markers.length > 0) {
     markers.forEach(m => {
@@ -455,10 +475,21 @@ function animate() {
       }
     });
   }
-  
+
   if (compass) compass.update();
+
+  // Karte mitdrehen lassen, wenn mapView und controls existieren
+  if (mapView && mapView.map && controls && typeof controls.getCorrectedHeading === 'function') {
+    const heading = controls.getCorrectedHeading();
+    if (isIOS) {
+      mapView.rotateToHeading(-heading); // iOS: Vorzeichen invertieren
+    } else {
+      mapView.rotateToHeading(heading); // Android: Heading direkt verwenden
+    }
+  }
+
   updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay);
-  
+
   // Nur rendern, wenn erforderlich
   if (renderer && threeCamera) {
     renderer.render(sceneEl.object3D, threeCamera);
@@ -470,7 +501,7 @@ function animate() {
  */
 function addCompass() {
   console.log('addCompass()');
-  compass = new CompassGUI({
+  compass = addCompassToScene({
     deviceOrientationControl: controls,
     compassArrowId: 'compassArrow',
     compassTextId: 'compassText',
@@ -484,7 +515,7 @@ function addCompass() {
  */
 function addArrow() {
   console.log('addArrow()');
-  arrow = new ARNavigationArrow({
+  arrow = addArrowToScene({
     locar,
     camera: threeCamera,
     deviceOrientationControl: controls,
@@ -494,7 +525,6 @@ function addArrow() {
     getScreenOrientation: () => screenOrientation,
     getIndexActiveMarker: () => indexActive
   });
-  arrow.initArrow('./glbmodell/Pfeil5.glb');
 }
 
 /**

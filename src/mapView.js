@@ -22,6 +22,19 @@ export class MapView {  constructor(options = {}) {
     this.initializeEvents();
   }
 
+  /**
+   * Dreht die Karte so, dass oben immer die Blickrichtung des Nutzers ist.
+   * @param {number} heading - Heading in Grad (0 = Norden)
+   */
+  rotateToHeading(heading) {
+    if (!this.map) return;
+    // OpenLayers: 0 = Norden oben, positive Werte gegen den Uhrzeigersinn (Radiant)
+    // Heading: 0 = Norden, im Uhrzeigersinn steigend
+    // Wir müssen also das Vorzeichen umdrehen und in Radiant umrechnen
+    const rotation = -heading * Math.PI / 180;
+    this.map.getView().setRotation(rotation);
+  }
+
   initializeEvents() {
     // Toggle Button Event
     this.mapToggle.addEventListener('click', () => {

@@ -1,3 +1,12 @@
+/**
+ * Factory-Funktion zum Hinzufügen des Kompass-UI zur AR-Szene.
+ * Kapselt die Instanziierung von CompassGUI.
+ * @param {Object} params - Parameterobjekt (siehe main.js)
+ * @returns {CompassGUI} Die erzeugte Kompass-Instanz
+ */
+export function addCompassToScene(params) {
+  return new CompassGUI(params);
+}
 export class CompassGUI {
   constructor({ deviceOrientationControl, compassArrowId, compassTextId, compassDirectionsId, getScreenOrientation}) {
     this.deviceOrientationControl = deviceOrientationControl;

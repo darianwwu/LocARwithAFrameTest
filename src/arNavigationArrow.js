@@ -1,3 +1,14 @@
+/**
+ * Factory-Funktion zum Hinzufügen des Navigationspfeils zur AR-Szene.
+ * Kapselt die Instanziierung und Initialisierung des ARNavigationArrow.
+ * @param {Object} params - Parameterobjekt (siehe main.js)
+ * @returns {ARNavigationArrow} Die erzeugte Arrow-Instanz
+ */
+export function addArrowToScene(params) {
+  const arrow = new ARNavigationArrow(params);
+  arrow.initArrow('./glbmodell/Pfeil5.glb');
+  return arrow;
+}
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import 'three';
 
