@@ -1,15 +1,22 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>DeviceOrientation Test</title>
-  <style>
-    body { margin: 0; }
-    canvas { width: 100vw; height: 100vh; display: block; }
-  </style>
-  <script type="module" crossorigin src="./assets/index-8u7--MSl.js"></script>
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1" />
+<title>LocAR.js example 2</title>
+  <script type="module" crossorigin src="./assets/index-CgcNn7-W.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-D1ozsMkJ.css">
 </head>
 <body>
-  <canvas id="glscene"></canvas>
+<main>
+
+<div id="gpsinput">
+<div><input id="fakeLat" placeholder="Fake Lat" /></div>
+<div><input id="fakeLon" placeholder="Fake Lon"/></div>
+<div><button id="setFakeLoc">Set Fake Location!</button></div>
+</div>
+
+<canvas id="glscene"></canvas>
+
+</main>
 </body>
 </html>
