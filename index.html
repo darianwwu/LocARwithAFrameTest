@@ -1,22 +1,212 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1" />
-<title>LocAR.js example 2</title>
-  <script type="module" crossorigin src="./assets/index-DVj4Pt97.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-D1ozsMkJ.css">
+  <meta charset="UTF-8" />  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />  <!-- OpenLayers CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
+  <title>AR Navigation Demo</title>
+  <script type="module" crossorigin src="./assets/index-DBKZJwPq.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-5HZORIbL.css">
 </head>
 <body>
-<main>
+  <!-- Splash Screen -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-logo">🌲</div>
+    <h1 class="splash-title">AR Navigation</h1>
+    <p class="splash-subtitle">im Wald-Kontext</p>
+    <div class="loading-bar">
+      <div class="loading-progress"></div>
+    </div>
+  </div>
 
-<div id="gpsinput">
-<div><input id="fakeLat" placeholder="Fake Lat" /></div>
-<div><input id="fakeLon" placeholder="Fake Lon"/></div>
-<div><button id="setFakeLoc">Set Fake Location!</button></div>
-</div>
+  <!-- Overlay Container -->
+  <div id="overlayContainer" class="overlay-container">
+    <div class="form-container">
+      <div class="form-header">
+        <h2 class="form-title">Ziele eingeben</h2>
+        <p class="form-subtitle">Neue Navigationspunkte hinzufügen</p>
+      </div>
 
-<canvas id="glscene"></canvas>
+      <div class="form-group">
+        <label for="latitude" class="form-label">Breitengrad (Latitude WGS84)</label>
+        <input
+          type="number"
+          id="latitude"
+          class="form-input"
+          step="0.000001"
+          value="51.900000"
+          placeholder="z.B. 51.900000"
+        />
+      </div>
 
-</main>
+      <div class="form-group">
+        <label for="longitude" class="form-label">Längengrad (Longitude WGS84)</label>
+        <input
+          type="number"
+          id="longitude"
+          class="form-input"
+          step="0.000001"
+          value="7.600000"
+          placeholder="z.B. 7.600000"
+        />
+      </div>
+
+      <button id="btnAddMarker" class="btn btn--primary">Marker hinzufügen</button>
+      <button id="btnStart" class="btn btn--accent">Navigation starten</button>
+
+      <div class="divider">oder</div>
+
+      <button id="btnTestAdd" class="btn btn--outline">
+        5 Testmarker laden
+      </button>
+    </div>
+  </div>
+
+  <!-- AR Container -->
+  <div id="arContainer" class="ar-container">    <a-scene
+      id="glscene"
+      locar-webcam="idealWidth: 3840; idealHeight: 2160"
+      device-orientation-permission-ui="enabled: false"
+      loading-screen="enabled: false"
+      vr-mode-ui="enabled: false"
+    >
+      <a-camera
+        id="camera"
+        look-controls="magicWindowTrackingEnabled: false"
+        wasd-controls
+        locar-camera
+        device-orientation-controls="smoothingFactor: 0.15"
+        gps-new-camera="gpsMinDistance: 3"
+      ></a-camera>
+    </a-scene>
+
+    <!-- Marker-Popup -->
+    <div id="markerPopup" class="marker-popup">
+      <p id="markerPopupText" class="marker-popup__text">
+        AR-Marker wurde geklickt!
+      </p>
+      <span id="popupClose" class="marker-popup__close">✕</span>
+    </div>
+
+    <div id="distance-overlay" class="distance-overlay">0 m</div>
+
+    <div id="compassContainer" class="compass-container">
+ 
+      <div id="compassDirections" class="compass-directions">
+        <div class="compass-direction north">N</div>
+        <div class="compass-direction south">S</div>
+        <div class="compass-direction east">O</div>
+        <div class="compass-direction west">W</div>
+        <div class="compass-tick minor tick-ne"></div>
+        <div class="compass-tick minor tick-se"></div>
+        <div class="compass-tick minor tick-sw"></div>
+        <div class="compass-tick minor tick-nw"></div>
+
+      </div>
+      
+      <div id="compassArrow" class="compass-arrow"></div>
+      <div id="compassText" class="compass-text"></div>
+    </div>    <div class="gps-accuracy">
+      <div class="gps-indicator gps-indicator--high"></div>
+      <div class="gps-text">
+        GPS: <span class="gps-accuracy-value">~3m</span>
+      </div>
+    </div>
+
+    <!-- Map Container -->
+    <div id="mapContainer" class="map-container">
+      <button id="mapToggle" class="map-toggle">
+        <svg class="map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </button>
+      <div id="mapView" class="map-view">
+        <div id="map" class="map-display"></div>
+      </div>
+    </div>
+
+    <!-- Settings Button -->
+    <button id="settingsButton" class="settings-button">
+      <svg class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>    <!-- Settings Menu -->
+    <div id="settingsMenu" class="settings-menu">
+      <div class="settings-menu__content"><div class="settings-item">
+          <div class="settings-row">
+            <span class="settings-text">Kompass</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleCompass" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>        <div class="settings-item">
+          <div class="settings-row">
+            <span class="settings-text">GPS-Genauigkeit</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleGPS" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-row">
+            <span class="settings-text">Karte</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleMap" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-row">
+            <span class="settings-text">Pfeilfarbe</span>
+            <div class="color-picker">
+              <input type="color" id="arrowColorPicker" value="#ff4444" class="color-input">
+              <div class="color-preview" id="colorPreview" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline-Script: Splash-Screen + Popup-Logik -->
+  <script>
+    // Splash Screen ausblenden
+    setTimeout(() => {
+      const splash = document.getElementById('splashScreen');
+      splash.classList.add('splash-screen--hidden');
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 350);
+    }, 2500);
+
+    // Popup-Elemente
+    const markerPopup = document.getElementById('markerPopup');
+    const closeButton = document.getElementById('popupClose');
+
+    closeButton.addEventListener('click', () => {
+      markerPopup.classList.remove('marker-popup--visible');
+    });
+
+    window.showMarkerPopup = (text, duration = 5000) => {
+      const popupText = document.getElementById('markerPopupText');
+      popupText.textContent = text;
+      markerPopup.classList.add('marker-popup--visible');
+
+      if (duration > 0) {
+        setTimeout(() => {
+          markerPopup.classList.remove('marker-popup--visible');
+        }, duration);
+      }
+    };  </script>
+
+  <!-- OpenLayers JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.5.0/dist/ol.js"></script>
 </body>
 </html>
