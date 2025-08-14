@@ -9,11 +9,12 @@ export function addCompassToScene(params) {
 }
 
 export class CompassGUI {
-  constructor({ deviceOrientationControl, compassArrowId, compassTextId, compassDirectionsId, getScreenOrientation}) {
+  constructor({ deviceOrientationControl, compassArrowId, compassTextId, compassDirectionsId, isIOS, getScreenOrientation }) {
     this.deviceOrientationControl = deviceOrientationControl;
     this.compassArrow = document.getElementById(compassArrowId);
     this.compassText = document.getElementById(compassTextId);
     this.compassDirections = document.getElementById(compassDirectionsId);
+    this.isIOS = isIOS;
     this.getScreenOrientation = getScreenOrientation;
   }
   
@@ -27,7 +28,13 @@ export class CompassGUI {
   const heading = this.deviceOrientationControl.getCorrectedHeading();
   
   // UI Elemente aktualisieren
-  this.compassDirections.style.transform = `rotate(${heading}deg)`;
+  if(this.isIOS){
+    this.compassDirections.style.transform = `rotate(${heading}deg)`;
+  }
+  else {
+    this.compassDirections.style.transform = `rotate(${-heading}deg)`;
+  }
+
   this.compassText.innerText = `${Math.round(heading)}°`;
   
   }

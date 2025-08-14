@@ -400,6 +400,9 @@ async function init() {
 
     // Event Listener für Resize
     const handleResize = () => {
+      // Screen Orientation aktualisieren
+      screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
+      
       const updateCamera = () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         threeCamera.aspect = window.innerWidth / window.innerHeight;
@@ -413,6 +416,14 @@ async function init() {
       }
     };
     window.addEventListener("resize", handleResize);
+
+    // Zusätzlich orientationchange Event für bessere Kompatibilität
+    window.addEventListener("orientationchange", () => {
+      setTimeout(() => {
+        screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
+        console.log('Orientation changed:', screenOrientation);
+      }, 100);
+    });
 
     // Device Controls initialisieren
     controls = new DeviceOrientationControls(threeCamera, {
@@ -549,11 +560,25 @@ function animate() {
 
   // Karte mitdrehen lassen, wenn mapView und controls existieren
   if (mapView && mapView.map && controls && typeof controls.getCorrectedHeading === 'function') {
-    const heading = controls.getCorrectedHeading();
+    let heading = controls.getCorrectedHeading();
+    
     if (isIOS) {
       mapView.rotateToHeading(-heading); // iOS: Vorzeichen invertieren
     } else {
-      mapView.rotateToHeading(heading); // Android: Heading direkt verwenden
+      // Android: Landscape-Modus-Korrektur
+      let orientationOffset = 0;
+      
+      if (screenOrientation.type?.includes('landscape') || Math.abs(screenOrientation.angle) === 90) {
+        // Unterscheidung zwischen den beiden Landscape-Modi
+        if (screenOrientation.type === 'landscape-primary' || screenOrientation.angle === 90) {
+          orientationOffset = 90;  // Handy nach links gedreht (Home-Button rechts)
+        } else if (screenOrientation.type === 'landscape-secondary' || screenOrientation.angle === 270 || screenOrientation.angle === -90) {
+          orientationOffset = -90; // Handy nach rechts gedreht (Home-Button links)
+        }
+        console.log(`Android Landscape: type=${screenOrientation.type}, angle=${screenOrientation.angle}, offset=${orientationOffset}`);
+      }
+      
+      mapView.rotateToHeading(heading + orientationOffset);
     }
   }
 
@@ -575,6 +600,7 @@ function addCompass() {
     compassArrowId: 'compassArrow',
     compassTextId: 'compassText',
     compassDirectionsId: 'compassDirections',
+    isIOS,
     getScreenOrientation: () => screenOrientation
   });
 }
