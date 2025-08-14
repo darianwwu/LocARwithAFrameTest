@@ -975,3 +975,32 @@ input:focus + .toggle-slider {
 .a-ui {
   display: none !important;
 }
+
+/* Pfad-Navigation Styles */
+.path-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+#pathSelector {
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  transition: border-color 0.3s ease;
+}
+
+#pathSelector:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+#pathSelector option {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+}
