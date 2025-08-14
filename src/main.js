@@ -49,6 +49,20 @@ let screenOrientation = { type: screen.orientation?.type, angle: screen.orientat
 const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i);
 
 /**
+ * Prüft, ob bereits ein Marker an den gegebenen Koordinaten existiert
+ * @param {number} lat - Breitengrad
+ * @param {number} lon - Längengrad
+ * @param {number} tolerance - Toleranz in Grad (Standard: 0.000001 ≈ 0.1m)
+ * @returns {boolean} - true wenn ein Duplikat gefunden wurde
+ */
+function isDuplicateMarker(lat, lon, tolerance = 0.000001) {
+  return targetCoords.some(marker => 
+    Math.abs(marker.latitude - lat) < tolerance && 
+    Math.abs(marker.longitude - lon) < tolerance
+  );
+}
+
+/**
  * Schließt ein Popup, wenn auf den Schließen-Button des Popups geklickt wird.
  */
 closeButton.addEventListener('click', () => {
@@ -68,6 +82,12 @@ btnAdd.addEventListener('click', () => {
   // Validierung der Werte von lat und lon
   if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
     showPopup('Ungültige Koordinaten!', 3000);
+    return;
+  }
+
+  // Prüfung auf Duplikate
+  if (isDuplicateMarker(lat, lon)) {
+    showPopup('Marker an dieser Position existiert bereits!', 3000);
     return;
   }
 
@@ -140,13 +160,30 @@ btnTest.addEventListener('click', async () => {
         longitude: currentCoords.longitude + 0.0081,
         popupContent: 'Testpunkt ~900m Nordost'
       }
-    ];    // Alle Ziele auf einmal hinzufügen
-    targetCoords.push(...newMarkers);
+    ];
+
+    // Duplikat-Prüfung für alle neuen Marker
+    const uniqueMarkers = newMarkers.filter(newMarker => 
+      !isDuplicateMarker(newMarker.latitude, newMarker.longitude)
+    );
+
+    if (uniqueMarkers.length === 0) {
+      showPopup('Alle Testmarker existieren bereits an diesen Positionen!', 3000);
+      return;
+    }
+
+    if (uniqueMarkers.length < newMarkers.length) {
+      const skippedCount = newMarkers.length - uniqueMarkers.length;
+      console.log(`${skippedCount} Marker übersprungen (Duplikate)`);
+    }
+
+    // Nur eindeutige Ziele hinzufügen
+    targetCoords.push(...uniqueMarkers);
     
     // Kartenmarker auch hinzufügen, wenn Karte bereits existiert
     if (mapView) {
-      newMarkers.forEach((marker, index) => {
-        const globalIndex = targetCoords.length - newMarkers.length + index;
+      uniqueMarkers.forEach((marker, index) => {
+        const globalIndex = targetCoords.length - uniqueMarkers.length + index;
         const isActive = globalIndex === 0; // Erster Marker global ist aktiv
         mapView.addTargetMarker(
           marker.latitude,
@@ -157,8 +194,15 @@ btnTest.addEventListener('click', async () => {
       });
     }
     
-    // Popup anzeigen für Nutzendenfeedback
-    showPopup('5 Marker hinzugefügt!', 1500);
+    // Feedback über hinzugefügte Marker
+    const addedCount = uniqueMarkers.length;
+    const skippedCount = newMarkers.length - uniqueMarkers.length;
+    
+    if (skippedCount > 0) {
+      showPopup(`${addedCount} neue Marker hinzugefügt, ${skippedCount} Duplikate übersprungen!`, 2500);
+    } else {
+      showPopup(`${addedCount} Marker hinzugefügt!`, 1500);
+    }
   } catch (err) {
     console.error('Fehler beim Abrufen der aktuellen Position:', err);
     handleGpsError(err);

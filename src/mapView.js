@@ -3,13 +3,15 @@
  * Zeigt eine zusammenklappbare Karte in der unteren linken Ecke
  */
 
-export class MapView {  constructor(options = {}) {
+export class MapView {
+  constructor(options = {}) {
     this.map = null;
     this.userMarker = null;
     this.targetMarkers = [];
     this.vectorSource = null;
     this.isVisible = false;
     this.currentPosition = null;
+    this.userInteractedWithMap = false; // Flag für Benutzerinteraktion
     
     // Callback-Funktionen
     this.onMarkerClick = options.onMarkerClick || null;
@@ -86,7 +88,18 @@ export class MapView {  constructor(options = {}) {
           projection: 'EPSG:3857'
         }),
         controls: []
-      });      // Warten bis Karte geladen ist
+      });
+
+      // Map-Interaktions-Events überwachen
+      this.map.on('movestart', () => {
+        this.userInteractedWithMap = true;
+      });
+
+      this.map.on('zoomstart', () => {
+        this.userInteractedWithMap = true;
+      });
+
+      // Warten bis Karte geladen ist
       this.map.once('postrender', () => {
         console.log('OpenLayers Map loaded successfully');
         // Aktuelle Position anfordern
@@ -139,6 +152,20 @@ export class MapView {  constructor(options = {}) {
       }, 300);
     } else {
       this.mapContainer.classList.remove('map-view--visible');
+      // Beim Schließen: Flag zurücksetzen und Karte auf Standard-Ausschnitt zurücksetzen
+      this.userInteractedWithMap = false;
+      
+      // Karte auf Standard-Ausschnitt zurücksetzen
+      if (this.map) {
+        // Zurück zu allen Markern fitteren oder auf Benutzerposition zentrieren
+        if (this.targetMarkers.length > 0 || this.userMarker) {
+          this.fitMapToMarkers();
+        } else {
+          // Fallback auf Standard-Position
+          this.map.getView().setCenter(ol.proj.fromLonLat([7.6, 51.9]));
+          this.map.getView().setZoom(15);
+        }
+      }
     }
   }
 
@@ -168,8 +195,10 @@ export class MapView {  constructor(options = {}) {
 
       this.vectorSource.addFeature(this.userMarker);
 
-      // Karte auf Benutzerposition zentrieren
-      this.map.getView().setCenter(ol.proj.fromLonLat(this.currentPosition));
+      // Nur beim ersten Laden oder wenn Benutzer nicht interagiert hat, Karte zentrieren
+      if (!this.userInteractedWithMap) {
+        this.map.getView().setCenter(ol.proj.fromLonLat(this.currentPosition));
+      }
     } else {
       // GPS Position anfordern
       if (navigator.geolocation) {
@@ -213,8 +242,10 @@ export class MapView {  constructor(options = {}) {
     this.vectorSource.addFeature(marker);
     this.targetMarkers.push(marker);
     
-    // Karte anpassen um alle Marker zu zeigen
-    this.fitMapToMarkers();
+    // Nur beim ersten Marker oder wenn Benutzer nicht interagiert hat, auf Marker zoomen
+    if (!this.userInteractedWithMap && (this.targetMarkers.length === 1 || index === 0)) {
+      this.fitMapToMarkers();
+    }
     
     console.log(`Map marker added: ${title} at index ${markerIndex}, active: ${isActive}`);
     return marker;
