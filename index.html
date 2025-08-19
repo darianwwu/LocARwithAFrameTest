@@ -60,6 +60,10 @@
       <button id="btnTestAdd" class="btn btn--outline">
         5 Testmarker laden
       </button>
+      
+      <div class="path-controls">
+        <button id="btnLoadPaths" class="btn btn--outline">Wege laden</button>
+      </div>
     </div>
   </div>
 
@@ -77,6 +81,7 @@
         wasd-controls
         locar-camera
         device-orientation-controls="smoothingFactor: 0.15"
+        far="100000"
         gps-new-camera="gpsMinDistance: 3"
       ></a-camera>
     </a-scene>
@@ -163,12 +168,54 @@
         </div>
         <div class="settings-item">
           <div class="settings-row">
+            <div class="settings-text-with-info">
+              <button id="rescuePointsInfo" class="info-button" title="Lizenzinformationen">
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+              </button>
+              <span class="settings-text">Rettungspunkte (10km)</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleRescuePoints">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-item">
+          <div class="settings-row">
             <span class="settings-text">Pfeilfarbe</span>
             <div class="color-picker">
               <input type="color" id="arrowColorPicker" value="#ff4444" class="color-input">
               <div class="color-preview" id="colorPreview" style="display: none;"></div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Copyright Modal -->
+  <div id="copyrightModal" class="copyright-modal">
+    <div class="copyright-modal__overlay"></div>
+    <div class="copyright-modal__content">
+      <div class="copyright-modal__header">
+        <h3>Datenquellen & Lizenzen</h3>
+        <button id="copyrightModalClose" class="copyright-modal__close">&times;</button>
+      </div>
+      <div class="copyright-modal__body">
+        <div class="license-section">
+          <h4>🚑 Rettungspunkte</h4>
+          <p>
+            © <a href="https://www.rettungspunkte-forst.de" target="_blank" rel="noopener">KWF-Rettungspunkte v2.18</a>, 
+            <a href="https://kwf2020.kwf-online.de/wp-content/uploads/2025/01/Metadaten_KWF_Rettungspunkte_V2_18.pdf" target="_blank" rel="noopener">Datenurheber</a>, 
+            <a href="https://www.rettungspunkte-forst.de" target="_blank" rel="noopener">www.rettungspunkte-forst.de</a>
+          </p>
+          <p class="license-info">
+            Lizenziert unter <a href="https://creativecommons.org/licenses/by-nd/4.0/legalcode.de" target="_blank" rel="noopener">CC-BY-ND 4.0</a>
+          </p>
         </div>
       </div>
     </div>

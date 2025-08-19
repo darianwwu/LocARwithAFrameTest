@@ -8,6 +8,7 @@ export class MapView {
     this.map = null;
     this.userMarker = null;
     this.targetMarkers = [];
+    this.rescuePointMarkers = []; // Array für Rettungspunkt-Marker
     this.vectorSource = null;
     this.isVisible = false;
     this.currentPosition = null;
@@ -92,10 +93,6 @@ export class MapView {
 
       // Map-Interaktions-Events überwachen
       this.map.on('movestart', () => {
-        this.userInteractedWithMap = true;
-      });
-
-      this.map.on('zoomstart', () => {
         this.userInteractedWithMap = true;
       });
 
@@ -298,6 +295,149 @@ export class MapView {
     }
   }
 
+  /**
+   * Pfade zur Karte hinzufügen
+   * @param {Array} paths - Array von Pfadobjekten
+   * @param {number} activePathIndex - Index des aktiven Pfads (optional)
+   */
+  addPaths(paths, activePathIndex = -1) {
+    console.log('addPaths aufgerufen:', {
+      mapExists: !!this.map,
+      pathsCount: paths ? paths.length : 0,
+      activePathIndex,
+      paths: paths
+    });
+    
+    if (!this.map) {
+      console.warn('Karte nicht verfügbar - Pfade können nicht hinzugefügt werden');
+      return;
+    }
+    
+    console.log('Karte verfügbar, füge Pfade hinzu...');
+    
+    // Pfadquelle erstellen, falls sie nicht existiert
+    if (!this.pathSource) {
+      console.log('Erstelle neue Pfadquelle und Layer...');
+      this.pathSource = new ol.source.Vector();
+      
+      // Pfad-Layer erstellen
+      const pathLayer = new ol.layer.Vector({
+        source: this.pathSource,
+        style: (feature) => {
+          const isActive = feature.get('active') === true;
+          console.log('Style-Funktion aufgerufen für Feature:', {
+            id: feature.get('id'),
+            active: isActive
+          });
+          return new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: isActive ? '#ff0000' : '#00ff00', // Rot/Grün wie AR-Pfade
+              width: isActive ? 6 : 4, // Breiter für bessere Sichtbarkeit
+              lineCap: 'round',
+              lineJoin: 'round'
+            })
+          });
+        },
+        zIndex: 100 // Hohe Priorität für Sichtbarkeit
+      });
+      
+      // Pfad-Layer zur Karte hinzufügen
+      this.map.addLayer(pathLayer);
+      this.pathLayer = pathLayer;
+      console.log('Pfad-Layer zur Karte hinzugefügt');
+    } else {
+      console.log('Bestehende Pfadquelle löschen...');
+      // Bestehende Pfade löschen
+      this.pathSource.clear();
+    }
+    
+    // Pfade zur Quelle hinzufügen
+    paths.forEach((path, index) => {
+      console.log(`Pfad ${index} zur Karte hinzufügen:`, {
+        id: path.id,
+        koordinatenAnzahl: path.wgs84Coords.length,
+        ersteKoordinate: path.wgs84Coords[0],
+        letzteKoordinate: path.wgs84Coords[path.wgs84Coords.length - 1]
+      });
+      
+      // Koordinaten in Kartenprojektion umwandeln
+      const mapCoords = path.wgs84Coords.map(coord => 
+        ol.proj.transform(coord, 'EPSG:4326', 'EPSG:3857')
+      );
+      
+      console.log(`Transformierte Koordinaten für Pfad ${index}:`, {
+        original: path.wgs84Coords.slice(0, 2),
+        transformed: mapCoords.slice(0, 2)
+      });
+      
+      // Feature erstellen
+      const feature = new ol.Feature({
+        geometry: new ol.geom.LineString(mapCoords),
+        id: path.id,
+        active: index === activePathIndex
+      });
+      
+      console.log('Feature erstellt:', {
+        geometry: feature.getGeometry(),
+        coordinates: feature.getGeometry().getCoordinates().slice(0, 2),
+        active: feature.get('active')
+      });
+      
+      // Zur Quelle hinzufügen
+      this.pathSource.addFeature(feature);
+      console.log('Feature zur Quelle hinzugefügt');
+    });
+    
+    console.log(`${paths.length} Pfade zur Karte hinzugefügt`);
+    console.log('Pfadquelle Features:', this.pathSource.getFeatures().length);
+    console.log('Pfadquelle Extent:', this.pathSource.getExtent());
+    
+    // Karte auf alle Pfade einpassen, wenn keine Benutzerinteraktion
+    if (!this.userInteractedWithMap && paths.length > 0) {
+      const extent = this.pathSource.getExtent();
+      console.log('Karte auf Extent einpassen:', extent);
+      this.map.getView().fit(extent, {
+        padding: [50, 50, 50, 50],
+        maxZoom: 18
+      });
+    } else {
+      console.log('Karte nicht eingepasst:', {
+        userInteracted: this.userInteractedWithMap,
+        pathsLength: paths.length
+      });
+    }
+  }
+
+  /**
+   * Aktiven Pfad auf der Karte setzen
+   * @param {string|number} pathId - ID oder Index des zu aktivierenden Pfads
+   */
+  setActivePath(pathId) {
+    if (!this.pathSource) return;
+    
+    const features = this.pathSource.getFeatures();
+    
+    features.forEach(feature => {
+      if (typeof pathId === 'number') {
+        feature.set('active', feature === features[pathId]);
+      } else {
+        feature.set('active', feature.get('id') === pathId);
+      }
+    });
+    
+    // Neuzeichnen auslösen
+    this.pathLayer.changed();
+  }
+
+  /**
+   * Alle Pfade von der Karte entfernen
+   */
+  removeAllPaths() {
+    if (this.pathSource) {
+      this.pathSource.clear();
+    }
+  }
+
   // CSS für Custom Marker hinzufügen
   static injectStyles() {
     const style = document.createElement('style');
@@ -344,6 +484,60 @@ export class MapView {
       }
     `;
     document.head.appendChild(style);
+  }
+
+  /**
+   * Fügt einen Rettungspunkt-Marker zur Karte hinzu
+   * @param {number} lat - Breitengrad
+   * @param {number} lon - Längengrad  
+   * @param {string} name - Name des Rettungspunkts
+   * @param {number} distance - Entfernung in Metern
+   */
+  addRescuePointMarker(lat, lon, name, distance) {
+    if (!this.map) return;
+
+    const marker = new ol.Feature({
+      geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+      type: 'rescue',
+      title: name,
+      distance: distance
+    });
+
+    // Rettungspunkt-Style (rotes Kreuz)
+    const rescueStyle = new ol.style.Style({
+      image: new ol.style.Circle({
+        radius: 8,
+        fill: new ol.style.Fill({ color: '#ff0000' }),
+        stroke: new ol.style.Stroke({ 
+          color: '#ffffff', 
+          width: 2 
+        })
+      }),
+      text: new ol.style.Text({
+        text: '🚑',
+        font: '12px sans-serif',
+        fill: new ol.style.Fill({ color: '#ffffff' })
+      }),
+      zIndex: 500
+    });
+
+    marker.setStyle(rescueStyle);
+    this.vectorSource.addFeature(marker);
+    this.rescuePointMarkers.push(marker);
+    
+    console.log(`Rettungspunkt zur Karte hinzugefügt: ${name} (${(distance/1000).toFixed(1)}km)`);
+    return marker;
+  }
+
+  /**
+   * Entfernt alle Rettungspunkt-Marker von der Karte
+   */
+  removeRescuePointMarkers() {
+    this.rescuePointMarkers.forEach(marker => {
+      this.vectorSource.removeFeature(marker);
+    });
+    this.rescuePointMarkers = [];
+    console.log('Alle Rettungspunkt-Marker entfernt');
   }
 }
 

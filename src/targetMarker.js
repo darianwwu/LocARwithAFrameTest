@@ -1,4 +1,5 @@
-import 'three';
+import * as THREE from 'three';
+import { computeDistance } from './distanceOverlay.js';
 
 export class TargetMarker {
   constructor({locar, camera, markerCoords, isIOS, getScreenOrientation, onClick, deviceOrientationControl}) {
@@ -13,6 +14,16 @@ export class TargetMarker {
     this.markerAdded = false;
     this.originalMarkerPosition = new THREE.Vector3();
     this.clickBuffer = 20;
+
+    this.baseScale = 12;
+    this.referenceDistance = 50;
+    this.maxScale = 600;
+    this.minScale = 5; 
+
+    this.lastScaleUpdateTime = 0;
+    this.scaleUpdateInterval = 3000; // Skalierung nur alle 3 Sekunden
+    this.lastKnownDistance = null;
+    this.cachedScale = this.baseScale;
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -30,7 +41,10 @@ export class TargetMarker {
     const markerTexture = textureLoader.load(markerImageUrl);
     const markerMaterial = new THREE.SpriteMaterial({ map: markerTexture });
     this.markerObject = new THREE.Sprite(markerMaterial);
-    this.markerObject.scale.set(12, 12, 1);
+    
+    // Initial scale - will be updated dynamically based on distance
+    this.markerObject.scale.set(this.baseScale, this.baseScale, 1);
+    
     this.locar.add(
       this.markerObject,
       this.markerCoords.longitude,
@@ -55,25 +69,153 @@ export class TargetMarker {
   }
 
   /**
-   * Aktualisiert die Position des Markers basierend auf den aktuellen Koordinaten.
+   * Calculates the appropriate scale based on GPS distance to the marker
+   * @returns {number} The scale factor to apply
+   */
+  calculateDistanceBasedScale() {
+    try {
+      // Use stored GPS coordinates from main.js GPS updates
+      const currentGPS = window.currentGPSPosition;
+      if (!currentGPS) return this.baseScale;
+
+      // Calculate GPS distance using Haversine formula
+      const distance = computeDistance(
+        currentGPS.latitude,
+        currentGPS.longitude,
+        this.markerCoords.latitude,
+        this.markerCoords.longitude
+      );
+
+      console.log(`Marker distance: ${distance.toFixed(1)}m`);
+
+      // Progressive scaling for long distances - using maxScale dynamically
+      let calculatedScale;
+      
+      if (distance <= 100) {
+        // Close range: minimal scaling
+        calculatedScale = this.baseScale;
+      } else if (distance <= 500) {
+        // Short-medium range: gradual scaling
+        const factor = (distance - 100) / 400; // 0 to 1
+        const scaleRange = (this.maxScale - this.baseScale) * 0.1; // 10% of total range
+        calculatedScale = this.baseScale + (factor * scaleRange);
+      } else if (distance <= 2000) {
+        // Medium range: more noticeable scaling
+        const factor = (distance - 500) / 1500; // 0 to 1
+        const startScale = this.baseScale + (this.maxScale - this.baseScale) * 0.1;
+        const scaleRange = (this.maxScale - this.baseScale) * 0.3; // 30% of total range
+        calculatedScale = startScale + (factor * scaleRange);
+      } else if (distance <= 5000) {
+        // Long range: aggressive scaling
+        const factor = (distance - 2000) / 3000; // 0 to 1
+        const startScale = this.baseScale + (this.maxScale - this.baseScale) * 0.4;
+        const scaleRange = (this.maxScale - this.baseScale) * 0.4; // 40% of total range
+        calculatedScale = startScale + (factor * scaleRange);
+      } else {
+        // Very long range (5km+): maximum scaling for visibility up to 20km
+        const factor = Math.min((distance - 5000) / 15000, 1); // Cap at 20km
+        const startScale = this.baseScale + (this.maxScale - this.baseScale) * 0.8;
+        const scaleRange = (this.maxScale - this.baseScale) * 0.2; // Final 20% of range
+        calculatedScale = startScale + (factor * scaleRange);
+      }
+
+      // Clamp scale between min and max values
+      const finalScale = Math.max(this.minScale, Math.min(this.maxScale, calculatedScale));
+      
+      // Cache the distance for movement detection
+      this.lastKnownDistance = distance;
+      
+      console.log(`Distance: ${distance.toFixed(1)}m, Scale: ${finalScale.toFixed(1)} (${distance > 5000 ? 'VERY LONG' : distance > 2000 ? 'LONG' : distance > 500 ? 'MEDIUM' : distance > 100 ? 'SHORT-MED' : 'CLOSE'})`);
+      
+      return finalScale;
+    } catch (error) {
+      console.warn('Error calculating distance-based scale:', error);
+      return this.baseScale;
+    }
+  }
+
+  /**
+   * Prüft ob signifikante Bewegung stattgefunden hat
+   * @returns {boolean} True wenn sich die Distanz signifikant geändert hat
+   */
+  hasSignificantMovement() {
+    const currentGPS = window.currentGPSPosition;
+    if (!currentGPS || !this.lastKnownDistance) return false;
+
+    const currentDistance = computeDistance(
+      currentGPS.latitude, currentGPS.longitude,
+      this.markerCoords.latitude, this.markerCoords.longitude
+    );
+
+    const distanceChange = Math.abs(currentDistance - this.lastKnownDistance);
+    const threshold = currentDistance > 1000 ? 50 : 10; // 50m bei >1km, 10m bei <1km
+    
+    if (distanceChange > threshold) {
+      this.lastKnownDistance = currentDistance;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Schnelles Position-Update (bei jedem GPS-Update)
+   * @returns {void}
+   */
+  updatePosition() {
+    if (!this.markerObject) return;
+
+    let lonlatTarget;
+    try {
+      lonlatTarget = this.locar.lonLatToWorldCoords(this.markerCoords.longitude, this.markerCoords.latitude);
+    } catch (e) {
+      if (e === "No initial position determined") {
+        return;
+      } else {
+        throw e;
+      }
+    }
+    
+    const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
+    this.markerObject.position.copy(targetWorldPos);
+  }
+
+  /**
+   * Skalierung nur bei Bedarf aktualisieren (Performance-Optimierung)
+   * @returns {void}
+   */
+  updateScaleIfNeeded() {
+    if (!this.markerObject) return;
+
+    const now = Date.now();
+    const shouldUpdateScale = (
+      // Erste Aktualisierung
+      this.lastScaleUpdateTime === 0 ||
+      // Zeitintervall erreicht
+      (now - this.lastScaleUpdateTime) > this.scaleUpdateInterval ||
+      // Signifikante Bewegung
+      this.hasSignificantMovement()
+    );
+
+    if (shouldUpdateScale) {
+      const scale = this.calculateDistanceBasedScale();
+      this.markerObject.scale.set(scale, scale, 1);
+      this.cachedScale = scale;
+      const timeSinceLastUpdate = this.lastScaleUpdateTime === 0 ? 0 : (now - this.lastScaleUpdateTime) / 1000;
+      this.lastScaleUpdateTime = now;
+      console.log(`Scale updated for marker: ${scale.toFixed(1)} (${timeSinceLastUpdate.toFixed(1)}s since last update)`);
+    }
+  }
+
+  /**
+   * Hauptupdate-Methode (wird bei jedem GPS-Update aufgerufen)
+   * Optimiert: Position immer, Skalierung nur bei Bedarf
    * @returns {void}
    */
   update() {  
   if (!this.markerObject) return;
 
-  let lonlatTarget;
-  try {
-    lonlatTarget = this.locar.lonLatToWorldCoords(this.markerCoords.longitude, this.markerCoords.latitude);
-  } catch (e) {
-    if (e === "No initial position determined") {
-      return;
-    } else {
-      throw e;
-    }
-  }
-  
-  const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
-  this.markerObject.position.copy(targetWorldPos);
+  this.updatePosition();        // Immer ausführen (schnell)
+  this.updateScaleIfNeeded();   // Nur bei Bedarf (langsam)
   }
 
   /**

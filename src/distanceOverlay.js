@@ -1,4 +1,4 @@
-import 'three';
+import * as THREE from 'three';
 
 /**
  * Berechnet die Distanz zwischen zwei GPS-Koordinaten (Haversine-Formel)
