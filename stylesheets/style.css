@@ -1004,3 +1004,195 @@ input:focus + .toggle-slider {
   color: var(--color-text-primary);
   background-color: var(--color-surface);
 }
+
+/* ==============================================
+   COPYRIGHT MODAL & INFO BUTTON STYLES
+   ============================================== */
+
+/* Info Button neben dem Rettungspunkte-Toggle */
+.settings-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.info-button {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: color 0.2s ease, transform 0.1s ease;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-button:hover {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.info-button:active {
+  transform: scale(0.95);
+}
+
+.info-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* Copyright Modal */
+.copyright-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
+.copyright-modal--visible {
+  display: flex;
+}
+
+.copyright-modal__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.copyright-modal__content {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.copyright-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.copyright-modal__header h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.copyright-modal__close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: color 0.2s ease;
+  padding: 4px;
+  line-height: 1;
+}
+
+.copyright-modal__close:hover {
+  color: var(--color-text-primary);
+}
+
+.copyright-modal__body {
+  padding: var(--spacing-lg);
+}
+
+.license-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.license-section:last-child {
+  margin-bottom: 0;
+}
+
+.license-section h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.license-section p {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.license-section a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.license-section a:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.license-info {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.license-details {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-background);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.license-details small {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .copyright-modal {
+    padding: var(--spacing-sm);
+  }
+  
+  .copyright-modal__content {
+    max-height: 90vh;
+  }
+  
+  .copyright-modal__header,
+  .copyright-modal__body {
+    padding: var(--spacing-md);
+  }
+}
