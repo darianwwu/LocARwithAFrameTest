@@ -1010,6 +1010,12 @@ input:focus + .toggle-slider {
    ============================================== */
 
 /* Info Button neben dem Rettungspunkte-Toggle */
+.settings-text-with-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .settings-controls {
   display: flex;
   align-items: center;
@@ -1027,6 +1033,7 @@ input:focus + .toggle-slider {
   display: flex;
   align-items: center;
   justify-content: center;
+  order: -1; /* Platziert den Button vor dem Text */
 }
 
 .info-button:hover {
@@ -1041,7 +1048,7 @@ input:focus + .toggle-slider {
 .info-icon {
   width: 16px;
   height: 16px;
-  stroke-width: 2;
+  stroke-width: 2.5; /* Etwas dicker für bessere Sichtbarkeit */
 }
 
 /* Copyright Modal */
