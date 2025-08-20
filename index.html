@@ -7,8 +7,8 @@
   />  <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-D9ObD1Ci.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-B_BCg8Gl.css">
+  <script type="module" crossorigin src="./assets/index-92FHC8NP.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BS-5pNj8.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -171,10 +171,10 @@
           <div class="settings-row">
             <div class="settings-text-with-info">
               <button id="rescuePointsInfo" class="info-button" title="Lizenzinformationen">
-                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <circle cx="12" cy="12" r="9"/>
-                  <path d="M12 8h.01"/>
-                  <path d="M11 12h1v4h1"/>
+                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
                 </svg>
               </button>
               <span class="settings-text">Rettungspunkte (10km)</span>
@@ -192,11 +192,6 @@
               <input type="color" id="arrowColorPicker" value="#ff4444" class="color-input">
               <div class="color-preview" id="colorPreview" style="display: none;"></div>
             </div>
-          </div>
-        </div>
-        <div class="settings-item">
-          <div class="settings-row">
-            <button id="btnTestGPS" class="btn btn--secondary">Test GPS (Pfad-Start)</button>
           </div>
         </div>
       </div>
