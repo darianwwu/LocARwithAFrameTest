@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />  <meta
+  <meta charset="UTF-8" />
+  <meta
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-  />  <!-- OpenLayers CSS -->
+  />
+  <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
   <link rel="stylesheet" href="/public/stylesheets/style.css" />
   <title>AR Navigation Demo</title>
@@ -168,16 +170,7 @@
         </div>
         <div class="settings-item">
           <div class="settings-row">
-            <div class="settings-text-with-info">
-              <button id="rescuePointsInfo" class="info-button" title="Lizenzinformationen">
-                <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="16" x2="12" y2="12"/>
-                  <line x1="12" y1="8" x2="12.01" y2="8"/>
-                </svg>
-              </button>
-              <span class="settings-text">Rettungspunkte (10km)</span>
-            </div>
+            <span class="settings-text clickable-text" id="rescuePointsInfo" title="Lizenzinformationen anzeigen">Rettungspunkte (10km)</span>
             <label class="toggle-switch">
               <input type="checkbox" id="toggleRescuePoints">
               <span class="toggle-slider"></span>

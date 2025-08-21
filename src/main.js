@@ -306,9 +306,15 @@ settingsMenu.addEventListener('click', (e) => {
  * Schließt das Einstellungen-Menü, wenn außerhalb des Menüs geklickt wird.
  */
 document.addEventListener('click', (e) => {
+  // Verhindere das Schließen des Settings-Menüs, wenn das Copyright-Modal aktiv ist
+  const isModalVisible = copyrightModal.classList.contains('copyright-modal--visible');
+  const isClickOnModal = copyrightModal.contains(e.target);
+  
   if (settingsMenu.classList.contains('settings-menu--visible') && 
       !settingsMenu.contains(e.target) && 
-      !settingsButton.contains(e.target)) {
+      !settingsButton.contains(e.target) &&
+      !isModalVisible &&
+      !isClickOnModal) {
     settingsMenu.classList.remove('settings-menu--visible');
   }
 });
@@ -328,17 +334,20 @@ bindToggle(toggleGPS,    gpsAccuracy);
 bindToggle(toggleMap,    mapContainer);
 
 // Copyright Modal Event-Listener
-rescuePointsInfo?.addEventListener('click', () => {
+rescuePointsInfo?.addEventListener('click', (e) => {
+  e.stopPropagation(); // Verhindert das Schließen des Settings-Menüs
   copyrightModal.classList.add('copyright-modal--visible');
 });
 
-copyrightModalClose?.addEventListener('click', () => {
+copyrightModalClose?.addEventListener('click', (e) => {
+  e.stopPropagation(); // Verhindert das Schließen des Settings-Menüs
   copyrightModal.classList.remove('copyright-modal--visible');
 });
 
 // Modal schließen beim Klick auf Overlay
 copyrightModal?.addEventListener('click', (e) => {
   if (e.target === copyrightModal || e.target.classList.contains('copyright-modal__overlay')) {
+    e.stopPropagation(); // Verhindert das Schließen des Settings-Menüs
     copyrightModal.classList.remove('copyright-modal--visible');
   }
 });
