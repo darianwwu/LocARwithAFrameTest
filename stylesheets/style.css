@@ -725,19 +725,21 @@ canvas {
 .clickable-text {
   cursor: pointer;
   transition: all var(--transition-fast);
-  border-bottom: 1px dotted transparent;
+  color: #4a90e2; /* Blau */
+  text-decoration: underline;
+  text-decoration-color: #4a90e2;
   padding-bottom: 1px;
 }
 
 .clickable-text:hover {
-  color: var(--color-secondary);
-  border-bottom-color: var(--color-secondary);
+  color: #357abd; /* Dunkleres Blau beim Hover */
+  text-decoration-color: #357abd;
   transform: translateY(-1px);
 }
 
 .clickable-text:active {
   transform: translateY(0);
-  color: var(--color-primary-light);
+  color: #2a5a94; /* Noch dunkleres Blau beim Klicken */
 }
 
 /* Chakra UI inspired toggle switches */
