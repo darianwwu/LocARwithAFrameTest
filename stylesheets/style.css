@@ -859,37 +859,6 @@ input:focus + .toggle-slider {
   border-radius: 50%;
 }
 
-/* Settings Button Action */
-.settings-row--full {
-  padding: 0;
-}
-
-.settings-button-action {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: linear-gradient(135deg, #4299E1 0%, #3182CE 100%);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: center;
-  min-height: 28px;
-}
-
-.settings-button-action:hover {
-  background: linear-gradient(135deg, #3182CE 0%, #2C5282 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.settings-button-action:active {
-  transform: translateY(0);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .color-preview {
   width: 20px;
   height: 20px;

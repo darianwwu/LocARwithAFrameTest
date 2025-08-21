@@ -9,8 +9,8 @@
   <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-CcuUnISh.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CpfOB_zL.css">
+  <script type="module" crossorigin src="./assets/index-Dce74hIi.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-D4OyV9Bu.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -55,7 +55,7 @@
         />
       </div>
 
-      <button id="btnAddMarker" class="btn btn--primary">Navigationspunkt hinzufügen</button>
+      <button id="btnAddMarker" class="btn btn--primary">Marker hinzufügen</button>
       <button id="btnStart" class="btn btn--accent">Navigation starten</button>
 
       <div class="divider">oder</div>
@@ -188,10 +188,12 @@
           </div>
         </div>
         <div class="settings-item">
-          <div class="settings-row settings-row--full">
-            <button id="fakeGpsButton" class="settings-button-action" title="Testet die App mit einem simulierten GPS-Signal">
-              🧪 Test-GPS aktivieren
-            </button>
+          <div class="settings-row">
+            <span class="settings-text">Pfad-Animation</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="togglePathAnimation" checked>
+              <span class="toggle-slider"></span>
+            </label>
           </div>
         </div>
       </div>
