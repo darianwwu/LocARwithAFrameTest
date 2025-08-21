@@ -12,6 +12,26 @@
         "type": "LineString",
         "coordinates": [
           [
+            7.652725,
+            51.935361
+          ],
+          [
+            7.65333465,
+            51.934544873
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9999999,
+        "distance": 85.2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
             7.65333465,
             51.934544873
           ],
