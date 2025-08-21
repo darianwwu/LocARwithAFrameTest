@@ -192,9 +192,12 @@ canvas {
   z-index: var(--z-index-overlay);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: var(--spacing-lg);
+  overflow-y: auto;
+  /* Mindesthöhe für kleinere Bildschirme */
+  min-height: 100vh;
 }
 
 /* Formular-Container */
@@ -206,6 +209,11 @@ canvas {
   max-width: 420px;
   width: 100%;
   animation: slideUp 0.5s ease-out;
+  /* Zentrierung auch bei kleinen Bildschirmen */
+  margin: auto;
+  /* Mindestabstand oben/unten für Scrolling */
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 @keyframes slideUp {
