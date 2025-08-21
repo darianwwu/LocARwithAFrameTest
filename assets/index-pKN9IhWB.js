@@ -4949,48 +4949,51 @@ northing meters`+n;var d=u/2,f=0,p=0,A,m,g,y,v;return d>0&&(A=1e5/Math.pow(10,d)
         varying vec2 vUv;
         varying vec3 vPosition;
         
-        // Pfeil-Form Funktion
+        // Verbesserte Pfeil-Form Funktion
         float createArrow(vec2 uv, float offset) {
-          // Pfeil-Position entlang des Pfades verschieben
-          float arrowPos = mod(uv.y * 4.0 - offset, 1.0);
+          // Langsamere, smoothere Pfeil-Position
+          float arrowPos = mod(uv.y * 2.0 - offset * 0.5, 1.0);
           
-          // Pfeil-Form erstellen (Spitze + Schaft)
+          // Pfeil-Form mit weicheren Übergängen
           float centerLine = abs(uv.x - 0.5);
           
-          // Pfeilspitze (V-Form)
-          float tip = step(arrowPos, 0.3) * step(centerLine, 0.1 + (0.3 - arrowPos) * 0.6);
+          // Pfeilspitze (V-Form) - weicher und größer
+          float tipWidth = 0.15 + (0.4 - arrowPos) * 0.4;
+          float tip = smoothstep(0.0, 0.4, 1.0 - arrowPos) * smoothstep(tipWidth, tipWidth - 0.05, centerLine);
           
-          // Pfeilschaft (rechteckig)
-          float shaft = step(0.3, arrowPos) * step(arrowPos, 0.7) * step(centerLine, 0.08);
+          // Pfeilschaft (rechteckig) - weicher
+          float shaft = smoothstep(0.3, 0.4, arrowPos) * smoothstep(0.8, 0.7, arrowPos) * smoothstep(0.12, 0.08, centerLine);
           
-          // Weiche Kanten für bessere Optik
-          float arrow = smoothstep(0.0, 0.1, tip + shaft);
+          // Kombiniere Spitze und Schaft
+          float arrow = max(tip, shaft);
           
-          // Fade-out am Ende des Pfeils
-          arrow *= smoothstep(0.9, 0.7, arrowPos);
+          // Sanfteres Fade-out
+          arrow *= smoothstep(1.0, 0.8, arrowPos);
           
           return arrow;
         }
         
         void main() {
-          // Flow-Animation entlang des Pfades
-          float flowOffset = time * flowSpeed;
+          // Langsamere Flow-Animation
+          float flowOffset = time * flowSpeed * 0.3;
           
-          // Mehrere Pfeile gleichzeitig für kontinuierlichen Flow
+          // Mehrere Pfeile mit größeren Abständen für weniger Blinken
           float arrow1 = createArrow(vUv, flowOffset);
-          float arrow2 = createArrow(vUv, flowOffset + 0.5); // Versetzt um halbe Periode
-          float arrows = max(arrow1, arrow2);
+          float arrow2 = createArrow(vUv, flowOffset + 0.33);
+          float arrow3 = createArrow(vUv, flowOffset + 0.66);
           
-          // Pulsierender Effekt für aktive Pfade
-          float pulse = mix(1.0, 0.8 + 0.2 * sin(time * 3.0), isActive);
+          // Sanfte Kombination der Pfeile
+          float arrows = max(arrow1, max(arrow2, arrow3)) * 0.8;
           
-          // Pfeil-Intensität basierend auf Aktivitätsstatus
-          float arrowIntensity = mix(0.6, 1.0, isActive);
+          // Sanfterer Pulseffekt für aktive Pfade
+          float pulse = mix(0.9, 0.95 + 0.05 * sin(time * 2.0), isActive);
+          
+          // Pfeil-Intensität - weniger aggressiv
+          float arrowIntensity = mix(0.4, 0.7, isActive);
           arrows *= arrowIntensity;
           
-          // Farbmischung: Basis + Pfeile
-          vec3 finalColor = mix(baseColor, arrowColor, arrows);
-          finalColor *= pulse;
+          // Weichere Farbmischung
+          vec3 finalColor = mix(baseColor * pulse, arrowColor, arrows);
           
           gl_FragColor = vec4(finalColor, 1.0);
         }
