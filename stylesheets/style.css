@@ -204,7 +204,7 @@ canvas {
 .form-container {
   background: var(--color-surface);
   border-radius: var(--radius-xl);
-  padding: var(--spacing-xxl) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-xl);
   box-shadow: var(--shadow-xl);
   max-width: 420px;
   width: 100%;
@@ -212,8 +212,8 @@ canvas {
   /* Zentrierung auch bei kleinen Bildschirmen */
   margin: auto;
   /* Mindestabstand oben/unten für Scrolling */
-  margin-top: var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 @keyframes slideUp {
@@ -229,7 +229,7 @@ canvas {
 
 .form-header {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
 .form-title {
@@ -246,7 +246,7 @@ canvas {
 
 /* Form Elemente */
 .form-group {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .form-label {
@@ -290,7 +290,7 @@ canvas {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-base);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   position: relative;
   overflow: hidden;
 }
@@ -340,7 +340,7 @@ canvas {
 .divider {
   text-align: center;
   color: var(--color-text-light);
-  margin: var(--spacing-lg) 0;
+  margin: var(--spacing-md) 0;
   font-size: var(--font-size-xs);
   position: relative;
 }
@@ -1009,8 +1009,8 @@ input:focus + .toggle-slider {
 .path-controls {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
 #pathSelector {
