@@ -86,7 +86,7 @@ export class TargetMarker {
         this.markerCoords.longitude
       );
 
-      console.log(`Marker distance: ${distance.toFixed(1)}m`);
+      //console.log(`Marker distance: ${distance.toFixed(1)}m`);
 
       // Progressive scaling for long distances - using maxScale dynamically
       let calculatedScale;
@@ -125,7 +125,7 @@ export class TargetMarker {
       // Cache the distance for movement detection
       this.lastKnownDistance = distance;
       
-      console.log(`Distance: ${distance.toFixed(1)}m, Scale: ${finalScale.toFixed(1)} (${distance > 5000 ? 'VERY LONG' : distance > 2000 ? 'LONG' : distance > 500 ? 'MEDIUM' : distance > 100 ? 'SHORT-MED' : 'CLOSE'})`);
+      //console.log(`Distance: ${distance.toFixed(1)}m, Scale: ${finalScale.toFixed(1)} (${distance > 5000 ? 'VERY LONG' : distance > 2000 ? 'LONG' : distance > 500 ? 'MEDIUM' : distance > 100 ? 'SHORT-MED' : 'CLOSE'})`);
       
       return finalScale;
     } catch (error) {
@@ -202,7 +202,7 @@ export class TargetMarker {
       this.cachedScale = scale;
       const timeSinceLastUpdate = this.lastScaleUpdateTime === 0 ? 0 : (now - this.lastScaleUpdateTime) / 1000;
       this.lastScaleUpdateTime = now;
-      console.log(`Scale updated for marker: ${scale.toFixed(1)} (${timeSinceLastUpdate.toFixed(1)}s since last update)`);
+      //console.log(`Scale updated for marker: ${scale.toFixed(1)} (${timeSinceLastUpdate.toFixed(1)}s since last update)`);
     }
   }
 

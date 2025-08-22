@@ -845,7 +845,7 @@ function hideRescuePoints() {
  * 
  */
 function onGpsUpdate(e) {
-  console.log('gpsupdate event:', e.detail.position);
+  //console.log('gpsupdate event:', e.detail.position);
   try {
     const pos = e.detail.position.coords;
     currentCoords.latitude  = pos.latitude;
@@ -857,7 +857,7 @@ function onGpsUpdate(e) {
       longitude: pos.longitude
     };
     
-    console.log('currentCoords:', currentCoords);
+    //console.log('currentCoords:', currentCoords);
 
     const accuracy = pos.accuracy; // in Metern
     if (gpsAccuracyValue && gpsIndicator) {
@@ -1185,7 +1185,7 @@ if (btnLoadPaths) {
       showPopup('Lade Wegedaten...', 0);
       
       // Pfade aus JSON laden
-      const paths = await pathManager.loadPathsFromJson('./test-paths.json');
+      const paths = await pathManager.loadPathsFromJson('./test-paths-smart.json');
       console.log('Geladene Pfade:', paths);
       
       // Ladeindikator ausblenden

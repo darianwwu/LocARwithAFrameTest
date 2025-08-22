@@ -7,8 +7,8 @@ export class ARPathTube {
     this.path = options.path || null;
     this.color = options.color || 0x3388ff;
     this.pathObject = null;
-    this.radius = options.radius || 0.1; // Rohr-Radius in Metern
-    this.height = 0; // Höhe über dem Boden
+    this.radius = options.radius || 1; // Rohr-Radius in Metern
+    this.height = 0.2; // Höhe über dem Boden
     this.isActive = options.isActive || false;
     this.material = null;
   }
