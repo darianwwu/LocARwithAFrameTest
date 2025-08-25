@@ -1,6 +1,5 @@
 import 'aframe';
-import './locar-aframenew.js';
-import DeviceOrientationControls from './device-orientation-controls.js';
+import 'locar-aframe';
 import 'aframe-look-at-component';
 import { CompassGUI, addCompassToScene } from './compassGUI.js';
 import { ARNavigationArrow, addArrowToScene } from './arNavigationArrow.js';
@@ -270,8 +269,7 @@ btnStart.addEventListener('click', async() => {
     // Pfadnavigation initialisieren
     await initPathNavigation();
 
-    // Verbinde Controls und zeige AR-Container an
-    controls.connect();
+    // AR-Container anzeigen
     overlayContainer.style.display = 'none';
     arContainer.style.display = 'block';
 
@@ -429,7 +427,7 @@ if (distanceOverlay) {
       updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
     }
     
-    console.log('Distance mode changed to:', distanceMode);
+    console.log('Distance mode changed to :', distanceMode);
   });
 }
 
@@ -507,15 +505,16 @@ async function init() {
       }, 100);
     });
 
-    // Device Controls initialisieren
-    controls = new DeviceOrientationControls(threeCamera, {
-      smoothingFactor: 0.15,
-      enablePermissionDialog: false
-    });
     // LocAR Setup
     const comp = cameraEl.components['locar-camera'];
     if (comp?.locar) {
       locar = comp.locar;
+      controls = comp.deviceOrientationControls;
+      console.log('LocAR Setup Debug:', {
+        locarType: locar.constructor.name,
+        locarMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(locar)),
+        hasLonLatToWorldCoords: typeof locar.lonLatToWorldCoords === 'function'
+      });
       try {
         locar.startGps();
       } catch (err) {
@@ -1185,7 +1184,7 @@ if (btnLoadPaths) {
       showPopup('Lade Wegedaten...', 0);
       
       // Pfade aus JSON laden
-      const paths = await pathManager.loadPathsFromJson('./test-paths-smart.json');
+      const paths = await pathManager.loadPathsFromJson('./test-paths/test-paths-smart.json');
       console.log('Geladene Pfade:', paths);
       
       // Ladeindikator ausblenden

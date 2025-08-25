@@ -167,6 +167,11 @@ export class TargetMarker {
     let lonlatTarget;
     try {
       lonlatTarget = this.locar.lonLatToWorldCoords(this.markerCoords.longitude, this.markerCoords.latitude);
+      console.log('TargetMarker Position Debug:', {
+        markerCoords: this.markerCoords,
+        worldCoords: lonlatTarget,
+        locarType: this.locar.constructor.name
+      });
     } catch (e) {
       if (e === "No initial position determined") {
         return;
@@ -237,17 +242,24 @@ export class TargetMarker {
   if (intersects.length > 0 && this.isInFrontOfCamera(this.markerObject, this.camera)) {
     markerClicked = true;
   } else {
-    // Fallback: Bildschirmkoordinaten-Nähe (z.B. bei PointMarker oder Sprite)
-    const markerPosWorld = this.markerObject.position.clone();
-    const markerPosScreen = markerPosWorld.project(this.camera);
-    
-    if (markerPosScreen.z >= 1) return; // liegt hinter der Kamera – abbrechen
+    // Fallback: Bildschirmnähe prüfen (Sprite/Point) – mit Weltposition arbeiten
+    const markerPosWorld = new THREE.Vector3();
+    this.markerObject.getWorldPosition(markerPosWorld);
 
+    // In Normalized Device Coordinates projizieren
+    const markerPosScreen = markerPosWorld.clone().project(this.camera);
+
+    // hinter der Kamera? -> Abbrechen
+    if (markerPosScreen.z >= 1) return;
+
+    // NDC -> Pixel
     const markerScreenX = (markerPosScreen.x + 1) / 2 * window.innerWidth;
     const markerScreenY = (-markerPosScreen.y + 1) / 2 * window.innerHeight;
+
     const dx = event.clientX - markerScreenX;
     const dy = event.clientY - markerScreenY;
     const distancePx = Math.sqrt(dx * dx + dy * dy);
+
     if (distancePx < this.clickBuffer) {
       markerClicked = true;
     }
@@ -265,12 +277,24 @@ export class TargetMarker {
    * @returns {boolean} Ob das Objekt vor der Kamera ist
    */
   isInFrontOfCamera(object, camera) {
-    const objectPos = new THREE.Vector3();
-    object.getWorldPosition(objectPos);
+    // Weltpositionen ermitteln
+    const objectWorldPos = new THREE.Vector3();
+    object.getWorldPosition(objectWorldPos);
 
-    const cameraToObject = new THREE.Vector3().subVectors(objectPos, camera.position).normalize();
-    const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    
+    const cameraWorldPos = new THREE.Vector3();
+    camera.getWorldPosition(cameraWorldPos);
+
+    // Blickrichtung der Kamera aus Welt-Quaternion
+    const worldQuat = new THREE.Quaternion();
+    camera.getWorldQuaternion(worldQuat);
+    const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(worldQuat).normalize();
+
+    // Vektor von Kamera -> Objekt
+    const cameraToObject = new THREE.Vector3()
+      .subVectors(objectWorldPos, cameraWorldPos)
+      .normalize();
+
+    // Objekt liegt "vor" der Kamera, wenn der Skalarprodukt > 0 ist
     return cameraForward.dot(cameraToObject) > 0;
   }
 

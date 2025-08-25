@@ -114,35 +114,50 @@ export class ARNavigationArrow {
    * @returns {void}
    */
   update() {
-    if (!this.arrowObject || this.currentCoords.longitude === null || this.currentCoords.latitude === null) {
+    if (
+      !this.arrowObject ||
+      this.currentCoords.longitude === null ||
+      this.currentCoords.latitude === null
+    ) {
       return;
     }
 
     const now = Date.now();
-    
-    // Throttle Updates für bessere Stabilität
-    if (now - this.lastUpdate < this.updateThreshold) {
-      return;
-    }
+    // Updates drosseln (Stabilität)
+    if (now - this.lastUpdate < this.updateThreshold) return;
 
-    const targetCoordsArray = this.getTargetCoords();
+    // aktives Ziel holen
+    const targets = this.getTargetCoords();
     const activeIndex = this.getIndexActiveMarker();
-    const lonlatTarget = this.locar.lonLatToWorldCoords(targetCoordsArray[activeIndex].longitude, targetCoordsArray[activeIndex].latitude);
-    const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
-    const lonlatUser = this.locar.lonLatToWorldCoords(this.currentCoords.longitude, this.currentCoords.latitude);
-    const userWorldPos = new THREE.Vector3(lonlatUser[0], 1.5, lonlatUser[1]);
+    if (!targets || targets.length === 0 || activeIndex < 0 || activeIndex >= targets.length) return;
 
-    const direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
-    const targetAngle = Math.atan2(direction.x, direction.z);
+    // Weltpositionen von Ziel und Nutzer aus LoCAR (x,z aus lon/lat)
+    const [tx, tz] = this.locar.lonLatToWorldCoords(
+      targets[activeIndex].longitude,
+      targets[activeIndex].latitude
+    );
+    const [ux, uz] = this.locar.lonLatToWorldCoords(
+      this.currentCoords.longitude,
+      this.currentCoords.latitude
+    );
+    const targetWorldPos = new THREE.Vector3(tx, 1.5, tz);
+    const userWorldPos   = new THREE.Vector3(ux, 1.5, uz);
 
-    // Verwende die korrigierte Heading-Methode (in Radians)
-    const cameraDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    const userHeading = Math.atan2(cameraDirection.x, cameraDirection.z); // in Radiant
+    // Zielwinkel relativ zur Welt
+    const toTarget = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
+    const targetAngle = Math.atan2(toTarget.x, toTarget.z);
+
+    // >>> WICHTIG: Kamera-Blickrichtung aus *Welt*-Quaternion, nicht local
+    const worldQuat = new THREE.Quaternion();
+    this.camera.getWorldQuaternion(worldQuat);
+    const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(worldQuat);
+    const userHeading   = Math.atan2(cameraForward.x, cameraForward.z);
+
+    // Relativwinkel (normalisiert auf [-PI, PI])
     let relativeAngle = targetAngle - userHeading;
     relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
 
     const relativeAngleDeg = relativeAngle * (180 / Math.PI);
-
     if (Math.abs(relativeAngleDeg - this.lastAngle) > this.angleThreshold) {
       this.arrowObject.rotation.set(0, relativeAngle, 0);
       this.lastAngle = relativeAngleDeg;

@@ -11,8 +11,8 @@
   "dependencies": {
     "aframe-look-at-component": "^1.0.0",
     "git": "^0.1.5",
-    "locar": "^0.0.12",
-    "locar-aframe": "^0.0.3",
+    "locar": "^0.1.0",
+    "locar-aframe": "^0.1.1",
     "proj4": "^2.19.10",
     "rollup": "^4.37.0",
     "three": "^0.175.0"
