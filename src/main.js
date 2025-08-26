@@ -686,7 +686,7 @@ async function loadAndShowRescuePoints() {
     showPopup('Lade Rettungspunkte...', 0);
 
     const rescuePoints = await pathManager.loadRescuePointsFromGPX(
-      './NordrheinWestfalen.gpx',
+      './rescuepoints/NordrheinWestfalen.gpx',
       currentCoords,
       10000 // 10km Radius
     );
@@ -1184,7 +1184,7 @@ if (btnLoadPaths) {
       showPopup('Lade Wegedaten...', 0);
       
       // Pfade aus JSON laden
-      const paths = await pathManager.loadPathsFromJson('./test-paths/test-paths-smart.json');
+      const paths = await pathManager.loadPathsFromJson('./test-paths/new_route.json');
       console.log('Geladene Pfade:', paths);
       
       // Ladeindikator ausblenden
