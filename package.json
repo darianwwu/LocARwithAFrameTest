@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "aframe-look-at-component": "^1.0.0",
-    "git": "^0.1.5",
     "locar": "^0.1.0",
     "locar-aframe": "^0.1.1",
     "proj4": "^2.19.10",

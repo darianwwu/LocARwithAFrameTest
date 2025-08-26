@@ -659,6 +659,9 @@ function setActivePath(index) {
     arPath.setActive(i === index);
   });
   
+  // Path Switcher UI aktualisieren
+  updatePathSwitcherUI();
+  
   // Popup mit Pfadinfo anzeigen
   const path = pathManager.paths[index];
   const distance = path.distance ? `${(path.distance / 1000).toFixed(2)} km` : '';
@@ -914,10 +917,11 @@ function onGpsUpdate(e) {
       const nearest = pathManager.findNearestPath({ latitude: pos.latitude, longitude: pos.longitude });
       if (nearest) {
         const distance = nearest.distance;
+        const nearestPathIndex = pathManager.paths.findIndex(p => p.id === nearest.path.id);
         
         // Aktiviere den Pfad automatisch, wenn der Nutzer innerhalb von 100m ist
         if (distance < 100 && nearestPathIndex !== activePathIndex) {
-          console.log(`Auto-activating nearest path ${nearestPathIndex}, distance: ${distance.toFixed(1)}m`);
+          console.log(`Auto-activating nearest path ${nearestPathIndex} (${nearest.path.name}), distance: ${distance.toFixed(1)}m`);
           setActivePath(nearestPathIndex);
         }
       }
@@ -1183,8 +1187,12 @@ if (btnLoadPaths) {
       // Ladeindikator anzeigen
       showPopup('Lade Wegedaten...', 0);
       
-      // Pfade aus JSON laden
-      const paths = await pathManager.loadPathsFromJson('./test-paths/new_route.json');
+      // Mehrere Pfade aus JSON laden
+      const pathUrls = [
+        './test-paths/new_route.json',
+        './test-paths/new_route_alt.json'
+      ];
+      const paths = await pathManager.loadMultiplePathsFromJson(pathUrls);
       console.log('Geladene Pfade:', paths);
       
       // Ladeindikator ausblenden
@@ -1215,12 +1223,15 @@ if (btnLoadPaths) {
         window.pendingPaths = paths;
       }
       
-      // Automatisch den ersten (und einzigen) Pfad aktivieren
+      // Automatisch den ersten Pfad aktivieren
       if (paths.length > 0) {
         setActivePath(0);
         
-        // Zielmarker am Ende des Weges hinzufügen
+        // Zielmarker am Ende des ersten Weges hinzufügen
         addPathEndpointMarker(paths[0]);
+        
+        // Path Switcher UI anzeigen, wenn mehrere Pfade vorhanden
+        updatePathSwitcherUI();
       }
       
       showPopup(`${paths.length} Wege geladen`, 2000);
@@ -1229,4 +1240,74 @@ if (btnLoadPaths) {
       showPopup('Fehler beim Laden der Pfade', 3000);
     }
   });
+}
+
+/**
+ * Aktualisiert die Path Switcher UI
+ */
+function updatePathSwitcherUI() {
+  const pathSwitcher = document.getElementById('pathSwitcher');
+  const pathInfo = document.getElementById('pathInfo');
+  
+  if (!pathManager || !pathManager.paths) {
+    pathSwitcher.style.display = 'none';
+    return;
+  }
+  
+  const pathCount = pathManager.paths.length;
+  
+  if (pathCount <= 1) {
+    pathSwitcher.style.display = 'none';
+    return;
+  }
+  
+  // UI anzeigen
+  pathSwitcher.style.display = 'flex';
+  pathInfo.textContent = `Weg ${activePathIndex + 1} von ${pathCount}`;
+  
+  // Buttons aktivieren/deaktivieren
+  const btnPrev = document.getElementById('btnPrevPath');
+  const btnNext = document.getElementById('btnNextPath');
+  
+  btnPrev.disabled = activePathIndex <= 0;
+  btnNext.disabled = activePathIndex >= pathCount - 1;
+}
+
+/**
+ * Wechselt zum vorherigen Pfad
+ */
+function switchToPreviousPath() {
+  if (activePathIndex > 0) {
+    setActivePath(activePathIndex - 1);
+    updatePathSwitcherUI();
+    
+    // Zielmarker am Ende des neuen Weges hinzufügen
+    if (pathManager.paths[activePathIndex]) {
+      addPathEndpointMarker(pathManager.paths[activePathIndex]);
+    }
+  }
+}
+
+/**
+ * Wechselt zum nächsten Pfad
+ */
+function switchToNextPath() {
+  if (pathManager && activePathIndex < pathManager.paths.length - 1) {
+    setActivePath(activePathIndex + 1);
+    updatePathSwitcherUI();
+    
+    // Zielmarker am Ende des neuen Weges hinzufügen
+    if (pathManager.paths[activePathIndex]) {
+      addPathEndpointMarker(pathManager.paths[activePathIndex]);
+    }
+  }
+}
+
+// Event Listener für Path Switcher Buttons
+if (document.getElementById('btnPrevPath')) {
+  document.getElementById('btnPrevPath').addEventListener('click', switchToPreviousPath);
+}
+
+if (document.getElementById('btnNextPath')) {
+  document.getElementById('btnNextPath').addEventListener('click', switchToNextPath);
 }

@@ -26,51 +26,85 @@ export class PathManager {
       }
       
       const data = await response.json();
-      
-      // Alle Koordinaten aus allen Features sammeln
-      let allCoordinates = [];
-      
-      data.features.forEach(feature => {
-        if (feature.geometry.type !== 'LineString') {
-          console.warn('Nicht unterstützter Geometrietyp:', feature.geometry.type);
-          return;
-        }
-        
-        // ETRS89/UTM Zone 32N zu WGS84 transformieren
-        const wgs84Coords = feature.geometry.coordinates.map(coord => 
-          proj4('EPSG:25832', 'EPSG:4326', coord)
-        );
-        
-        allCoordinates.push(...wgs84Coords);
-      });
-      
-      // Einen einzigen Pfad erstellen
-      if (allCoordinates.length > 0) {
-        this.paths = [{
-          id: 'main-path',
-          name: data.name || 'Route',
-          distance: data.length || 0,
-          duration: data.duration || 0,
-          originalCoords: allCoordinates,
-          wgs84Coords: allCoordinates,
-          properties: {
-            name: data.name || 'Route',
-            description: data.description || 'Importierte Route',
-            distance: data.length || 0,
-            duration: data.duration || 0,
-            segments: data.features.length
-          }
-        }];
-      } else {
-        this.paths = [];
-      }
-      
-      console.log(`Route geladen: ${allCoordinates.length} Punkte, ${(data.length/1000).toFixed(1)}km, ${(data.duration/60).toFixed(1)} Min`);
-      return this.paths;
+      return this.addPathFromData(data, url);
     } catch (error) {
       console.error('Fehler beim Laden der Pfaddaten:', error);
       throw error;
     }
+  }
+
+  /**
+   * Lädt mehrere Pfad-Dateien
+   * @param {string[]} urls - Array von URLs der JSON-Dateien
+   * @returns {Promise<Array>} - Die geladenen Pfade
+   */
+  async loadMultiplePathsFromJson(urls) {
+    try {
+      this.paths = []; // Reset existing paths
+      
+      for (const url of urls) {
+        await this.loadPathsFromJson(url);
+      }
+      
+      console.log(`Gesamt: ${this.paths.length} Pfade geladen`);
+      return this.paths;
+    } catch (error) {
+      console.error('Fehler beim Laden mehrerer Pfade:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fügt einen Pfad aus Daten hinzu
+   * @param {Object} data - JSON-Daten
+   * @param {string} source - Quell-URL für Bezeichnung
+   * @returns {Array} - Aktualisierte Pfade
+   */
+  addPathFromData(data, source = 'unknown') {
+    // Alle Koordinaten aus allen Features sammeln
+    let allCoordinates = [];
+    
+    data.features.forEach(feature => {
+      if (feature.geometry.type !== 'LineString') {
+        console.warn('Nicht unterstützter Geometrietyp:', feature.geometry.type);
+        return;
+      }
+      
+      // ETRS89/UTM Zone 32N zu WGS84 transformieren
+      const wgs84Coords = feature.geometry.coordinates.map(coord => 
+        proj4('EPSG:25832', 'EPSG:4326', coord)
+      );
+      
+      allCoordinates.push(...wgs84Coords);
+    });
+    
+    // Pfad erstellen und hinzufügen
+    if (allCoordinates.length > 0) {
+      const pathId = `path-${this.paths.length}`;
+      const fileName = source.split('/').pop().replace('.json', '');
+      
+      const newPath = {
+        id: pathId,
+        name: data.name || fileName || 'Route',
+        distance: data.length || 0,
+        duration: data.duration || 0,
+        originalCoords: allCoordinates,
+        wgs84Coords: allCoordinates,
+        properties: {
+          name: data.name || fileName || 'Route',
+          description: data.description || `Importierte Route (${fileName})`,
+          distance: data.length || 0,
+          duration: data.duration || 0,
+          segments: data.features.length,
+          source: source
+        }
+      };
+      
+      this.paths.push(newPath);
+      console.log(`Pfad "${newPath.name}" hinzugefügt: ${allCoordinates.length} Punkte, ${(data.length/1000).toFixed(1)}km, ${(data.duration/60).toFixed(1)} Min`);
+    }
+    
+    return this.paths;
   }
   
   /**

@@ -1,0 +1,385 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "ETRS89 / UTM zone 32N",
+    "properties": {
+      "name": "EPSG:25832"
+    }
+  },
+  "duration": 114.31776927709518,
+  "length": 1307.8526218885643,
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407558.650535049,
+            5754741.39291237
+          ],
+          [
+            407600.0,
+            5754725.0
+          ],
+          [
+            407635.0,
+            5754705.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001001,
+        "name": "Beispielpfad Südost",
+        "duration": 7.411535785374864,
+        "length": 84.79168698287026
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407635.0,
+            5754705.0
+          ],
+          [
+            407680.0,
+            5754680.0
+          ],
+          [
+            407720.0,
+            5754650.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001002,
+        "name": "Beispielpfad Südost",
+        "duration": 8.870078803069827,
+        "length": 101.478150704935
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407720.0,
+            5754650.0
+          ],
+          [
+            407775.0,
+            5754620.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001003,
+        "name": "Beispielpfad Südost",
+        "duration": 5.476142798801833,
+        "length": 62.64982043070834
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407775.0,
+            5754620.0
+          ],
+          [
+            407820.0,
+            5754550.0
+          ],
+          [
+            407840.0,
+            5754520.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001004,
+        "name": "Beispielpfad Südost",
+        "duration": 10.425425549499398,
+        "length": 119.27209764010608
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407840.0,
+            5754520.0
+          ],
+          [
+            407900.0,
+            5754490.0
+          ],
+          [
+            407950.0,
+            5754475.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001005,
+        "name": "Beispielpfad Südost",
+        "duration": 10.42642849760826,
+        "length": 119.28357186954644
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407950.0,
+            5754475.0
+          ],
+          [
+            408020.0,
+            5754450.0
+          ],
+          [
+            408085.0,
+            5754410.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001006,
+        "name": "Beispielpfad Südost",
+        "duration": 13.1683064839577,
+        "length": 150.65203134896126
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            408085.0,
+            5754410.0
+          ],
+          [
+            408145.0,
+            5754375.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001007,
+        "name": "Beispielpfad Südost",
+        "duration": 6.071606158450661,
+        "length": 69.46221994724903
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            408145.0,
+            5754375.0
+          ],
+          [
+            408210.0,
+            5754360.0
+          ],
+          [
+            408265.0,
+            5754325.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001008,
+        "name": "Beispielpfad Südost",
+        "duration": 11.529244873011157,
+        "length": 131.90034437265814
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            408265.0,
+            5754325.0
+          ],
+          [
+            408270.0,
+            5754260.0
+          ],
+          [
+            408275.0,
+            5754200.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001009,
+        "name": "Beispielpfad Südost",
+        "duration": 10.961057598003073,
+        "length": 125.39999694598797
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            408275.0,
+            5754200.0
+          ],
+          [
+            408330.0,
+            5754160.0
+          ],
+          [
+            408380.0,
+            5754130.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001010,
+        "name": "Beispielpfad Südost",
+        "duration": 11.041200460484458,
+        "length": 126.31687149213022
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            408380.0,
+            5754130.0
+          ],
+          [
+            408450.0,
+            5754080.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001011,
+        "name": "Beispielpfad Südost",
+        "duration": 7.519185408706514,
+        "length": 86.02325267042627
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            408450.0,
+            5754080.0
+          ],
+          [
+            408520.0,
+            5754040.0
+          ],
+          [
+            408560.0,
+            5754010.0
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001012,
+        "name": "Beispielpfad Südost",
+        "duration": 11.417556860127428,
+        "length": 130.6225774829855
+      }
+    }
+  ]
+}
