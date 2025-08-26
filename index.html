@@ -9,7 +9,7 @@
   <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-Bvx1wZqM.js"></script>
+  <script type="module" crossorigin src="./assets/index-CIkqL2w0.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-518FImqt.css">
 </head>
 <body>
@@ -31,7 +31,7 @@
         <p class="form-subtitle">Neue Navigationspunkte hinzufügen</p>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="latitudeGroup" style="display: none;">
         <label for="latitude" class="form-label">Breitengrad (Latitude WGS84)</label>
         <input
           type="number"
@@ -43,7 +43,7 @@
         />
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="longitudeGroup" style="display: none;">
         <label for="longitude" class="form-label">Längengrad (Longitude WGS84)</label>
         <input
           type="number"

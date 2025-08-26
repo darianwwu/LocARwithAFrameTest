@@ -6,9 +6,37 @@
       "name": "EPSG:25832"
     }
   },
-  "duration": 114.31776927709518,
-  "length": 1307.8526218885643,
+  "duration": 124.82,
+  "length": 1543.12,
   "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407353.3258444844,
+            5754707.365850145
+          ],
+          [
+            407558.650535049,
+            5754741.39291237
+          ]
+        ]
+      },
+      "properties": {
+        "edge_id": 9001000,
+        "name": "Beispielpfad Südost",
+        "duration": 10.5,
+        "length": 235.27
+      }
+    },
     {
       "type": "Feature",
       "geometry": {
