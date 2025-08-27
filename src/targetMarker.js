@@ -167,11 +167,6 @@ export class TargetMarker {
     let lonlatTarget;
     try {
       lonlatTarget = this.locar.lonLatToWorldCoords(this.markerCoords.longitude, this.markerCoords.latitude);
-      console.log('TargetMarker Position Debug:', {
-        markerCoords: this.markerCoords,
-        worldCoords: lonlatTarget,
-        locarType: this.locar.constructor.name
-      });
     } catch (e) {
       if (e === "No initial position determined") {
         return;

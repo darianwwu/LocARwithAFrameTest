@@ -331,8 +331,8 @@ export class MapView {
           });
           return new ol.style.Style({
             stroke: new ol.style.Stroke({
-              color: isActive ? '#ff0000' : '#00ff00', // Rot/Grün wie AR-Pfade
-              width: isActive ? 6 : 4, // Breiter für bessere Sichtbarkeit
+              color: isActive ? '#ff0000' : '#787c78ff', // Rot/Grau aktiv/inaktiv
+              width: isActive ? 6 : 3, // Breiter für bessere Sichtbarkeit
               lineCap: 'round',
               lineJoin: 'round'
             })

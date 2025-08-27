@@ -337,6 +337,21 @@ canvas {
   color: var(--color-surface);
 }
 
+/* Button Group */
+.btn-group {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.btn-group .btn {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-height: auto;
+  flex: 1;
+  min-width: 0;
+}
+
 /* Divider */
 .divider {
   text-align: center;

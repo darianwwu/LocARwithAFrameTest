@@ -30,7 +30,7 @@
         <p class="form-subtitle">Neue Navigationspunkte hinzufügen</p>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="latitudeGroup" style="display: none;">
         <label for="latitude" class="form-label">Breitengrad (Latitude WGS84)</label>
         <input
           type="number"
@@ -42,7 +42,7 @@
         />
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="longitudeGroup" style="display: none;">
         <label for="longitude" class="form-label">Längengrad (Longitude WGS84)</label>
         <input
           type="number"
@@ -66,9 +66,9 @@
       <div class="path-controls">
         <button id="btnLoadPaths" class="btn btn--outline">Wege laden</button>
         <div id="pathSwitcher" class="path-switcher" style="display: none;">
-          <button id="btnPrevPath" class="btn btn--outline">◀ Vorheriger Weg</button>
+          <button id="btnPrevPath" class="btn btn--outline">◀</button>
           <span id="pathInfo" class="path-info">Weg 1 von 1</span>
-          <button id="btnNextPath" class="btn btn--outline">Nächster Weg ▶</button>
+          <button id="btnNextPath" class="btn btn--outline">▶</button>
         </div>
       </div>
     </div>

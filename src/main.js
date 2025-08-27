@@ -9,12 +9,16 @@ import { MapView } from './mapView.js';
 import { showPopup, handleCameraError, handleGpsError, handleSensorError, checkBrowserSupport, checkSensorAvailability, handleGenericError } from './errorHandler.js';
 import { PathManager } from './pathManager.js';
 import { ARPathTube } from './arPathTube.js';
+import { ARPathFlowLine } from './arPathFlowLine.js';
+import { ARPathChevrons } from './arPathChevrons.js';
 
 // Elemente
 const overlayContainer = document.getElementById('overlayContainer');
 const arContainer      = document.getElementById('arContainer');
 const lonInput         = document.getElementById('longitude');
 const latInput         = document.getElementById('latitude');
+const latitudeGroup    = document.getElementById('latitudeGroup');
+const longitudeGroup   = document.getElementById('longitudeGroup');
 const btnAdd           = document.getElementById('btnAddMarker');
 const btnStart         = document.getElementById('btnStart');
 const btnTest          = document.getElementById('btnTestAdd');
@@ -53,7 +57,8 @@ let mapView;
 let markers = [];
 let targetCoords = [];
 let indexActive = 0;
-let distanceMode = 'distance'; // 'distance', 'minutes', 'both'
+let distanceMode = 'both'; // 'distance', 'minutes', 'both'
+let coordinateFieldsVisible = false; // Zustand der Koordinaten-Eingabefelder
 const currentCoords = { latitude: null, longitude: null };
 let screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
 
@@ -64,6 +69,19 @@ let activePathIndex = -1;
 let rescuePointsVisible = false;
 let rescuePointMarkers = [];
 const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i);
+
+// Path visual: 'flowline' | 'chevrons' | 'tube'
+let pathStyle = 'chevrons';
+window.setPathStyle = (style) => { 
+  pathStyle = style; 
+  console.log('Pfad-Stil geändert zu:', style);
+  if (pathManager && pathManager.paths && pathManager.paths.length > 0 && activePathIndex >= 0) { 
+    createARPaths(pathManager.paths[activePathIndex]); 
+    showPopup(`Pfad-Stil: ${style}`, 1500);
+  } else {
+    showPopup(`Pfad-Stil gesetzt: ${style} (wird bei nächstem Pfad-Laden angewendet)`, 2000);
+  }
+};
 
 /**
  * Prüft, ob bereits ein Marker an den gegebenen Koordinaten existiert
@@ -87,12 +105,21 @@ closeButton.addEventListener('click', () => {
 });
 
 /**
- * Button zum Hinzufügen einzelner Zielpunkte über die Eingabefelder "latitude" und "longitude"
- * Die Werte werden validiert (für WGS84-Koordinaten: -90 <= lat <= 90 und -180 <= lon <= 180)
- * Nur wenn sie gültig sind, wird das Ziel dem Array targetCoords angehängt.
+ * Button zum Hinzufügen einzelner Zielpunkte - zwei Modi:
+ * 1. Erste Betätigung: Zeigt die Koordinaten-Eingabefelder an
+ * 2. Weitere Betätigungen: Fügt Marker hinzu basierend auf Eingabefeldern
  */
 btnAdd.addEventListener('click', () => {
+  // Erster Klick: Eingabefelder anzeigen
+  if (!coordinateFieldsVisible) {
+    latitudeGroup.style.display = 'block';
+    longitudeGroup.style.display = 'block';
+    coordinateFieldsVisible = true;
+    showPopup('Koordinaten eingeben und erneut auf "Marker hinzufügen" klicken', 2500);
+    return;
+  }
 
+  // Zweiter+ Klick: Marker hinzufügen (ursprüngliche Logik)
   const lon = parseFloat(lonInput.value);
   const lat = parseFloat(latInput.value);
 
@@ -595,32 +622,37 @@ async function initPathNavigation() {
 }
 
 /**
- * AR-Pfadobjekte erstellen (nur Tube-Geometrie)
- * @param {Array} paths - Array von Pfadobjekten
+ * AR-Pfadobjekt für den aktiven Pfad erstellen
+ * @param {Object} activePath - Der aktive Pfad
  */
-function createARPaths(paths) {
-  // Bestehende AR-Pfade entfernen
+function createARPaths(activePath) {
   removeARPaths();
   
-  // Neue AR-Pfade erstellen (nur ARPathTube)
-  arPaths = paths.map((path, index) => {
-    const arPath = new ARPathTube({
-      locar: locar,
-      camera: threeCamera,
-      path: path,
-      color: 0x00ff00, // Hellgrün für bessere Sichtbarkeit
-      radius: 0.3, // Rohr-Radius in Metern
-      height: 3.0, // Höhe über dem Boden
-      isActive: index === activePathIndex
-    });
-    
-    // AR-Darstellung erstellen
-    arPath.createPathObject();
-    
-    return arPath;
-  });
+  if (!activePath) {
+    console.log('Kein aktiver Pfad - keine AR-Pfade erstellt');
+    return;
+  }
   
-  console.log(`${arPaths.length} AR-Pfadobjekte erstellt`);
+  const common = {
+    locar,
+    camera: threeCamera,
+    path: activePath,
+    isActive: true // Da es nur der aktive Pfad ist
+  };
+  
+  let arPath;
+  if (pathStyle === 'flowline') {
+    arPath = new ARPathFlowLine({ ...common, color: 0x00ff88, width: 0.5, height: 2.6, dashSize: 3, gapSize: 1.2, speed: 2.2 });
+  } else if (pathStyle === 'chevrons') {
+    arPath = new ARPathChevrons({ ...common, color: 0xff8800, spacing: 3.0, scale: 0.9, height: 2.8, speed: 1.7 });
+  } else {
+    arPath = new ARPathTube({ ...common, color: 0x00ff00, radius: 0.3, height: 3.0 });
+  }
+  
+  arPath.createPathObject();
+  arPaths = [arPath]; // Nur ein Pfad im Array
+  
+  console.log(`AR-Pfad erstellt für: ${activePath.name || 'Unbenannter Pfad'}`);
 }
 
 /**
@@ -641,6 +673,7 @@ function removeARPaths() {
 function setActivePath(index) {
   if (!pathManager || index < 0 || index >= pathManager.paths.length) {
     activePathIndex = -1;
+    removeARPaths(); // Entferne AR-Pfade wenn kein gültiger Pfad
     return;
   }
   
@@ -654,10 +687,10 @@ function setActivePath(index) {
     mapView.setActivePath(index);
   }
   
-  // AR-Pfade aktualisieren
-  arPaths.forEach((arPath, i) => {
-    arPath.setActive(i === index);
-  });
+  // AR-Pfad für den neuen aktiven Pfad erstellen
+  if (locar && threeCamera) {
+    createARPaths(pathManager.paths[activePathIndex]);
+  }
   
   // Path Switcher UI aktualisieren
   updatePathSwitcherUI();
@@ -893,8 +926,12 @@ function onGpsUpdate(e) {
     
     // Ausstehende Pfade erstellen, wenn AR jetzt bereit ist
     if (window.pendingPaths && locar && threeCamera && !arPaths.length) {
-      console.log('Erstelle ausstehende AR-Pfade...');
-      createARPaths(window.pendingPaths);
+      console.log('Erstelle ausstehenden AR-Pfad...');
+      // Finde den aktiven Pfad aus den ausstehenden Pfaden
+      const activePath = window.pendingPaths[activePathIndex] || window.pendingPaths[0];
+      if (activePath) {
+        createARPaths(activePath);
+      }
       window.pendingPaths = null;
     }
 
@@ -951,13 +988,12 @@ function animate() {
     });
   }
 
-  // AR-Paths aktualisieren, wenn sie existieren
-  if (arPaths && arPaths.length > 0) {
-    arPaths.forEach(path => {
-      if (path && typeof path.update === 'function') {
-        path.update();
-      }
-    });
+  // AR-Path aktualisieren, wenn er existiert
+  if (arPaths && arPaths.length > 0 && arPaths[0]) {
+    const activePath = arPaths[0];
+    if (activePath && typeof activePath.update === 'function') {
+      activePath.update();
+    }
   }
 
   if (compass) compass.update();
@@ -1189,7 +1225,7 @@ if (btnLoadPaths) {
       
       // Mehrere Pfade aus JSON laden
       const pathUrls = [
-        './test-paths/new_route.json',
+        './test-paths/route_corrected.json',
         './test-paths/new_route_alt.json'
       ];
       const paths = await pathManager.loadMultiplePathsFromJson(pathUrls);
@@ -1215,8 +1251,11 @@ if (btnLoadPaths) {
       
       // AR-Darstellungen erstellen (falls AR bereits läuft)
       if (sceneEl && locar && threeCamera) {
-        createARPaths(paths);
-        console.log('AR-Pfade sofort erstellt');
+        // Nur den ersten Pfad (wird aktiv) erstellen
+        if (paths.length > 0) {
+          createARPaths(paths[0]);
+          console.log('AR-Pfad für ersten Pfad sofort erstellt');
+        }
       } else {
         console.log('AR noch nicht bereit - Pfade werden später erstellt');
         // Pfade für später speichern
@@ -1281,10 +1320,8 @@ function switchToPreviousPath() {
     setActivePath(activePathIndex - 1);
     updatePathSwitcherUI();
     
-    // Zielmarker am Ende des neuen Weges hinzufügen
-    if (pathManager.paths[activePathIndex]) {
-      addPathEndpointMarker(pathManager.paths[activePathIndex]);
-    }
+    // Endpunkt-Marker für neuen Pfad hinzufügen und aktivieren
+    switchToPathEndpoint(pathManager.paths[activePathIndex]);
   }
 }
 
@@ -1296,12 +1333,46 @@ function switchToNextPath() {
     setActivePath(activePathIndex + 1);
     updatePathSwitcherUI();
     
-    // Zielmarker am Ende des neuen Weges hinzufügen
-    if (pathManager.paths[activePathIndex]) {
-      addPathEndpointMarker(pathManager.paths[activePathIndex]);
+    // Endpunkt-Marker für neuen Pfad hinzufügen und aktivieren
+    switchToPathEndpoint(pathManager.paths[activePathIndex]);
+  }
+}
+
+/**
+ * Wechselt zum Endpunkt des angegebenen Pfads
+ * @param {Object} path - Der Pfad, dessen Endpunkt aktiviert werden soll
+ */
+function switchToPathEndpoint(path) {
+  if (!path || !path.wgs84Coords || path.wgs84Coords.length === 0) {
+    console.warn('Kein gültiger Pfad für Endpunkt-Wechsel');
+    return;
+  }
+  
+  // Letzten Punkt des Pfades ermitteln
+  const lastCoordinate = path.wgs84Coords[path.wgs84Coords.length - 1];
+  const longitude = lastCoordinate[0];
+  const latitude = lastCoordinate[1];
+  
+  // Suchen, ob bereits ein Marker an dieser Position existiert
+  const existingMarkerIndex = targetCoords.findIndex(marker => 
+    Math.abs(marker.latitude - latitude) < 0.00001 && 
+    Math.abs(marker.longitude - longitude) < 0.00001
+  );
+  
+  if (existingMarkerIndex !== -1) {
+    // Bestehenden Marker aktivieren
+    setActive(existingMarkerIndex);
+    console.log(`Bestehender Marker am Pfad-Ende aktiviert: Index ${existingMarkerIndex}`);
+  } else {
+    // Neuen Marker hinzufügen
+    addPathEndpointMarker(path);
+    // Den neu hinzugefügten Marker (letzter im Array) als aktiv setzen
+    if (targetCoords.length > 0) {
+      setActive(targetCoords.length - 1);
     }
   }
 }
+
 
 // Event Listener für Path Switcher Buttons
 if (document.getElementById('btnPrevPath')) {
