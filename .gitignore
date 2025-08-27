@@ -1,4 +1,5 @@
 node_modules/
 dist/
+
 # Copilot Instructions (privat/lokal)
 .github/copilot-instructions.md
