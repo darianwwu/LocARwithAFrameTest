@@ -644,9 +644,9 @@ function createARPaths(activePath) {
   if (pathStyle === 'flowline') {
     arPath = new ARPathFlowLine({ ...common, color: 0x00ff88, width: 0.5, height: 2.6, dashSize: 3, gapSize: 1.2, speed: 2.2 });
   } else if (pathStyle === 'chevrons') {
-    arPath = new ARPathChevrons({ ...common, color: 0xff8800, spacing: 3.0, scale: 0.9, height: 2.8, speed: 1.7 });
+    arPath = new ARPathChevrons({ ...common, color: 0xff8800, spacing: 5.0, scale: 0.9, height: 0.5, speed: 2.0 });
   } else {
-    arPath = new ARPathTube({ ...common, color: 0x00ff00, radius: 0.3, height: 3.0 });
+    arPath = new ARPathTube({ ...common, color: 0x00ff00, radius: 0.3, height: 0.5 });
   }
   
   arPath.createPathObject();
@@ -817,10 +817,13 @@ function hideRescuePoints() {
   rescueIndices.reverse().forEach(index => {
     if (markers[index]) {
       const marker = markers[index];
-      if (marker.markerObject && marker.markerObject.parent) {
+      if (marker.markerAnchor && marker.markerAnchor.parentNode) {
+        marker.markerAnchor.parentNode.removeChild(marker.markerAnchor);
+      } else if (marker.markerObject && marker.markerObject.parent) {
         marker.markerObject.parent.remove(marker.markerObject);
       }
       marker.dispose();
+
       markers.splice(index, 1);
       console.log(`Marker bei Index ${index} aus markers Array entfernt`);
     }

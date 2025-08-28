@@ -11,6 +11,7 @@ export class ARPathTube {
     this.height = 0.2; // Höhe über dem Boden
     this.isActive = options.isActive || false;
     this.material = null;
+    this._anchorEntity = null;
   }
   
   /**
@@ -80,12 +81,14 @@ export class ARPathTube {
       this.pathObject = new THREE.Mesh(geometry, this.material);
       
       // Zur Szene hinzufügen am ersten GPS-Punkt
-      this.locar.add(
-        this.pathObject,
-        firstCoord[0], // longitude
-        firstCoord[1]  // latitude
-      );
-      
+      const anchor = document.createElement('a-entity');
+      anchor.setAttribute('locar-entity-place', `latitude: ${firstCoord[1]}; longitude: ${firstCoord[0]}`);
+      const sceneEl = (this.camera && this.camera.el && this.camera.el.sceneEl) || document.querySelector('a-scene');
+      sceneEl.appendChild(anchor);
+
+      anchor.object3D.add(this.pathObject);
+      this._anchorEntity = anchor;
+            
       console.log('AR-Pfad-Rohr erstellt:', {
         punkteAnzahl: points.length,
         radius: this.radius,
@@ -128,8 +131,11 @@ export class ARPathTube {
    */
   removePath() {
     if (this.pathObject && this.locar) {
-      this.locar.remove(this.pathObject);
-      
+      if (this._anchorEntity && this._anchorEntity.parentNode) {
+        this._anchorEntity.parentNode.removeChild(this._anchorEntity);
+        this._anchorEntity = null;
+      }
+            
       // Geometrie und Material freigeben
       if (this.pathObject.geometry) {
         this.pathObject.geometry.dispose();

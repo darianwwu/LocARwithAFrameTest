@@ -14,6 +14,7 @@ export class TargetMarker {
     this.markerAdded = false;
     this.originalMarkerPosition = new THREE.Vector3();
     this.clickBuffer = 20;
+    this.markerAnchor = null;
 
     this.baseScale = 12;
     this.referenceDistance = 50;
@@ -45,11 +46,18 @@ export class TargetMarker {
     // Initial scale - will be updated dynamically based on distance
     this.markerObject.scale.set(this.baseScale, this.baseScale, 1);
     
-    this.locar.add(
-      this.markerObject,
-      this.markerCoords.longitude,
-      this.markerCoords.latitude
+    const anchor = document.createElement('a-entity');
+    anchor.setAttribute(
+      'locar-entity-place',
+      `latitude: ${this.markerCoords.latitude}; longitude: ${this.markerCoords.longitude}`
     );
+    // in die Szene einfügen (nutzt deine bestehende <a-scene> / <a-camera>)
+    const sceneEl = (this.camera && this.camera.el && this.camera.el.sceneEl) || document.querySelector('a-scene');
+    sceneEl.appendChild(anchor);
+
+    // THREE-Objekt unter dem Entity platzieren
+    anchor.object3D.add(this.markerObject);
+    this.markerAnchor = anchor;
     this.markerAdded = true;
     this.originalMarkerPosition.copy(this.markerObject.position);
   }
@@ -163,20 +171,7 @@ export class TargetMarker {
    */
   updatePosition() {
     if (!this.markerObject) return;
-
-    let lonlatTarget;
-    try {
-      lonlatTarget = this.locar.lonLatToWorldCoords(this.markerCoords.longitude, this.markerCoords.latitude);
-    } catch (e) {
-      if (e === "No initial position determined") {
-        return;
-      } else {
-        throw e;
-      }
-    }
-    
-    const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
-    this.markerObject.position.copy(targetWorldPos);
+    this.markerObject.position.y = 1.5;
   }
 
   /**
@@ -298,5 +293,9 @@ export class TargetMarker {
    */
   dispose() {
     window.removeEventListener("click", this.handleClick);
+     if (this.markerAnchor && this.markerAnchor.parentNode) {
+    this.markerAnchor.parentNode.removeChild(this.markerAnchor);
+    this.markerAnchor = null;
+    }
   }
 }

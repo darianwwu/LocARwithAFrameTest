@@ -15,6 +15,7 @@ export class ARPathFlowLine {
     this.dashSize = options.dashSize ?? 3.0;
     this.gapSize  = options.gapSize  ?? 1.5;
     this.speed    = options.speed    ?? 2.0; // meters/second, visual flow speed
+    this._anchorEntity = null;
 
     this.pathObject = null;
     this.material = null;
@@ -88,7 +89,13 @@ export class ARPathFlowLine {
     this.pathObject = line;
 
     // anchor at the first GPS coordinate (LoCAR API)
-    this.locar.add(this.pathObject, this._lon0, this._lat0);
+    const anchor = document.createElement('a-entity');
+    anchor.setAttribute('locar-entity-place', `latitude: ${this._lat0}; longitude: ${this._lon0}`);
+    const sceneEl = (this.camera && this.camera.el && this.camera.el.sceneEl) || document.querySelector('a-scene');
+    sceneEl.appendChild(anchor);
+
+    anchor.object3D.add(this.pathObject);
+    this._anchorEntity = anchor;
 
     return this.pathObject;
   }
@@ -114,8 +121,11 @@ export class ARPathFlowLine {
   }
 
   removePath() {
-    if (this.pathObject && this.locar) {
-      this.locar.remove(this.pathObject);
+    if (this._anchorEntity && this._anchorEntity.parentNode) {
+      this._anchorEntity.parentNode.removeChild(this._anchorEntity);
+      this._anchorEntity = null;
+    }
+    if (this.pathObject) {
       if (this.pathObject.geometry) this.pathObject.geometry.dispose();
       if (this.pathObject.material) this.pathObject.material.dispose();
       this.pathObject = null;

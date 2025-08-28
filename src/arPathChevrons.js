@@ -10,6 +10,7 @@ export class ARPathChevrons {
     this.path = options.path || null;
     this.color = options.color || 0x00ff00;
     this.isActive = options.isActive || false;
+    this._anchorEntity = null;
 
     this.height   = options.height   ?? 2.8;  // meters above ground
     this.spacing  = options.spacing  ?? 3.0;  // meters between chevrons
@@ -124,7 +125,13 @@ export class ARPathChevrons {
     inst.instanceMatrix.needsUpdate = true;
 
     // anchor at the first GPS coordinate
-    this.locar.add(this.pathObject, this._lon0, this._lat0);
+    const anchor = document.createElement('a-entity');
+    anchor.setAttribute('locar-entity-place', `latitude: ${this._lat0}; longitude: ${this._lon0}`);
+    const sceneEl = (this.camera && this.camera.el && this.camera.el.sceneEl) || document.querySelector('a-scene');
+    sceneEl.appendChild(anchor);
+
+    anchor.object3D.add(this.pathObject);
+    this._anchorEntity = anchor;
 
     return this.pathObject;
   }
@@ -160,7 +167,10 @@ export class ARPathChevrons {
 
   removePath() {
     if (this.pathObject && this.locar) {
-      this.locar.remove(this.pathObject);
+      if (this._anchorEntity && this._anchorEntity.parentNode) {
+        this._anchorEntity.parentNode.removeChild(this._anchorEntity);
+        this._anchorEntity = null;
+      }
       if (this.pathObject.geometry) this.pathObject.geometry.dispose();
       if (this.pathObject.material) this.pathObject.material.dispose();
       this.pathObject = null;
