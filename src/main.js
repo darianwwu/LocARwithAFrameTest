@@ -1,6 +1,25 @@
+/**
+ * Hauptlogik der AR-Navigation (A-Frame + Three.js + LoCAR)
+ * - Verwaltung von Zielmarkern und Pfaden
+ * - UI/Settings für Kompass, GPS, Karte, Farben, Rettungspunkte, ...
+ * - AR-Initialisierung, GPS-Update-Handling und Animationsschleife
+ *
+ * Struktur:
+ *  1) Imports & DOM-Referenzen
+ *  2) Globaler State
+ *  3) Utilities (Helferfunktionen)
+ *  4) UI/Settings (Event-Handler)
+ *  5) AR-/Karten-Elemente (Kompass, Pfeil, Marker)
+ *  6) Pfadverwaltung (laden/aktivieren/AR-Objekte)
+ *  7) Initialisierung (init, initPathNavigation)
+ *  8) GPS-Updates & Renderloop
+ *  9) Buttons/Listener (Start, Pfade laden/wechseln)
+ */
+
 import 'aframe';
 import 'locar-aframe';
 import 'aframe-look-at-component';
+
 import { CompassGUI, addCompassToScene } from './compassGUI.js';
 import { ARNavigationArrow, addArrowToScene } from './arNavigationArrow.js';
 import { TargetMarker } from './targetMarker.js';
@@ -12,413 +31,179 @@ import { ARPathTube } from './arPathTube.js';
 import { ARPathFlowLine } from './arPathFlowLine.js';
 import { ARPathChevrons } from './arPathChevrons.js';
 
-// Elemente
-const overlayContainer = document.getElementById('overlayContainer');
-const arContainer      = document.getElementById('arContainer');
-const lonInput         = document.getElementById('longitude');
-const latInput         = document.getElementById('latitude');
-const latitudeGroup    = document.getElementById('latitudeGroup');
-const longitudeGroup   = document.getElementById('longitudeGroup');
-const btnAdd           = document.getElementById('btnAddMarker');
-const btnStart         = document.getElementById('btnStart');
-const btnTest          = document.getElementById('btnTestAdd');
-const markerPopup      = document.getElementById('markerPopup');
-const closeButton      = document.getElementById('popupClose');
-const distanceOverlay  = document.getElementById('distance-overlay');
+/* ============================================================================
+ * 1) DOM-Referenzen
+ * ========================================================================== */
+
+// Container & Grund-UI
+const overlayContainer  = document.getElementById('overlayContainer');
+const arContainer       = document.getElementById('arContainer');
+
+// Marker-Eingabe
+const lonInput          = document.getElementById('longitude');
+const latInput          = document.getElementById('latitude');
+const latitudeGroup     = document.getElementById('latitudeGroup');
+const longitudeGroup    = document.getElementById('longitudeGroup');
+
+// Buttons/Controls
+const btnAdd            = document.getElementById('btnAddMarker');
+const btnStart          = document.getElementById('btnStart');
+const btnTest           = document.getElementById('btnTestAdd');
+const btnLoadPaths      = document.getElementById('btnLoadPaths');
+
+// Marker-Popup
+const markerPopup       = document.getElementById('markerPopup');
+const closeButton       = document.getElementById('popupClose');
+
+// Overlays/Indikatoren
+const distanceOverlay   = document.getElementById('distance-overlay');
 const gpsIndicator      = document.querySelector('.gps-indicator');
 const gpsAccuracyValue  = document.querySelector('.gps-accuracy-value');
+const gpsAccuracy       = document.querySelector('.gps-accuracy');
 
-// Settings-Elemente
-const settingsButton = document.getElementById('settingsButton');
-const settingsMenu = document.getElementById('settingsMenu');
-const toggleCompass = document.getElementById('toggleCompass');
-const toggleGPS = document.getElementById('toggleGPS');
-const toggleMap = document.getElementById('toggleMap');
-const toggleRescuePoints = document.getElementById('toggleRescuePoints');
-const rescuePointsInfo = document.getElementById('rescuePointsInfo');
-const arrowColorPicker = document.getElementById('arrowColorPicker');
-const colorPreview = document.getElementById('colorPreview');
-const compassContainer = document.getElementById('compassContainer');
-const gpsAccuracy = document.querySelector('.gps-accuracy');
-const mapContainer = document.getElementById('mapContainer');
+// Settings
+const settingsButton    = document.getElementById('settingsButton');
+const settingsMenu      = document.getElementById('settingsMenu');
+const toggleCompass     = document.getElementById('toggleCompass');
+const toggleGPS         = document.getElementById('toggleGPS');
+const toggleMap         = document.getElementById('toggleMap');
+const toggleRescuePoints= document.getElementById('toggleRescuePoints');
+const rescuePointsInfo  = document.getElementById('rescuePointsInfo');
+const arrowColorPicker  = document.getElementById('arrowColorPicker');
+const colorPreview      = document.getElementById('colorPreview');
+const compassContainer  = document.getElementById('compassContainer');
+const mapContainer      = document.getElementById('mapContainer');
 
-// Copyright Modal Elemente
-const copyrightModal = document.getElementById('copyrightModal');
+// Copyright-Modal
+const copyrightModal      = document.getElementById('copyrightModal');
 const copyrightModalClose = document.getElementById('copyrightModalClose');
 
-// UI-Elemente für Pfad-Navigation
-const btnLoadPaths = document.getElementById('btnLoadPaths');
+// Path-Switcher
+const btnPrevPath       = document.getElementById('btnPrevPath');
+const btnNextPath       = document.getElementById('btnNextPath');
 
-// State
-let sceneEl, renderer, cameraEl, threeCamera;
-let locar, controls;
-let compass, arrow;
+/* ============================================================================
+ * 2) Globaler State
+ * ========================================================================== */
+
+/** @type {AFRAME.Scene} */
+let sceneEl;
+/** @type {THREE.WebGLRenderer} */
+let renderer;
+/** @type {AFRAME.Entity} */
+let cameraEl;
+/** @type {THREE.PerspectiveCamera} */
+let threeCamera;
+
+/** @type {import('./compassGUI').CompassGUI} */
+let compass;
+/** @type {import('./arNavigationArrow').ARNavigationArrow} */
+let arrow;
+
+/** @type {MapView} */
 let mapView;
+
+/** @type {any} LoCAR-Instanz (aus locar-camera Komponente) */
+let locar;
+/** @type {any} DeviceOrientationControls von LoCAR */
+let controls;
+
+// Marker-/Ziel-Verwaltung
+/** @type {TargetMarker[]} */
 let markers = [];
+/** @type {{latitude:number, longitude:number, popupContent?:string, markerType?:string}[]} */
 let targetCoords = [];
+/** Aktiver Zielmarker-Index */
 let indexActive = 0;
-let distanceMode = 'both'; // 'distance', 'minutes', 'both'
-let coordinateFieldsVisible = false; // Zustand der Koordinaten-Eingabefelder
+
+// Anzeige-Modus für das Distanz-Overlay
+/** @type {'distance'|'minutes'|'both'} */
+let distanceMode = 'both';
+
+// Sichtbarkeit der Koordinaten-Eingabefelder
+let coordinateFieldsVisible = false;
+
+// Aktuelle GPS-Position
 const currentCoords = { latitude: null, longitude: null };
+
+// Orientierung (für Kartenrotation/Korrektur)
 let screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
 
-// Pfad-Navigation State
+// Pfade/Navigation
+/** @type {PathManager} */
 let pathManager;
 let arPaths = [];
 let activePathIndex = -1;
+
+// Rettungspunkte
 let rescuePointsVisible = false;
-let rescuePointMarkers = [];
+
+// Plattform
 const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i);
 
-// Path visual: 'flowline' | 'chevrons' | 'tube'
+// Pfadstil (AR-Darstellung): 'flowline' | 'chevrons' | 'tube'
 let pathStyle = 'chevrons';
-window.setPathStyle = (style) => { 
-  pathStyle = style; 
-  console.log('Pfad-Stil geändert zu:', style);
-  if (pathManager && pathManager.paths && pathManager.paths.length > 0 && activePathIndex >= 0) { 
-    createARPaths(pathManager.paths[activePathIndex]); 
+window.setPathStyle = (style) => {
+  pathStyle = style;
+  if (pathManager?.paths?.length > 0 && activePathIndex >= 0) {
+    createARPaths(pathManager.paths[activePathIndex]);
     showPopup(`Pfad-Stil: ${style}`, 1500);
   } else {
-    showPopup(`Pfad-Stil gesetzt: ${style} (wird bei nächstem Pfad-Laden angewendet)`, 2000);
+    showPopup(`Pfad-Stil gesetzt: ${style} (wirkt beim nächsten Pfad-Laden)`, 2000);
   }
 };
 
+/* ============================================================================
+ * 3) Utilities
+ * ========================================================================== */
+
 /**
- * Prüft, ob bereits ein Marker an den gegebenen Koordinaten existiert
- * @param {number} lat - Breitengrad
- * @param {number} lon - Längengrad
- * @param {number} tolerance - Toleranz in Grad (Standard: 0.000001 ≈ 0.1m)
- * @returns {boolean} - true wenn ein Duplikat gefunden wurde
+ * Prüft, ob bereits ein Marker an den gegebenen Koordinaten existiert.
+ * @param {number} lat Breitengrad
+ * @param {number} lon Längengrad
+ * @param {number} [tolerance=1e-6] Toleranz in Grad (~0,1 m)
+ * @returns {boolean}
  */
-function isDuplicateMarker(lat, lon, tolerance = 0.000001) {
-  return targetCoords.some(marker => 
-    Math.abs(marker.latitude - lat) < tolerance && 
-    Math.abs(marker.longitude - lon) < tolerance
+function isDuplicateMarker(lat, lon, tolerance = 1e-6) {
+  return targetCoords.some(m =>
+    Math.abs(m.latitude - lat) < tolerance &&
+    Math.abs(m.longitude - lon) < tolerance
   );
 }
 
 /**
- * Schließt ein Popup, wenn auf den Schließen-Button des Popups geklickt wird.
+ * Findet den Index eines Markers anhand Lat/Lon (mit Toleranz).
+ * @param {number} lat Breitengrad
+ * @param {number} lon Längengrad
+ * @param {number} [eps=1e-5] Toleranz in Grad
+ * @returns {number} Index oder -1
  */
-closeButton.addEventListener('click', () => {
-  markerPopup.classList.remove('marker-popup--visible');
-});
+function findMarkerIndexByLatLon(lat, lon, eps = 1e-5) {
+  return targetCoords.findIndex(m =>
+    Math.abs(m.latitude  - lat) < eps &&
+    Math.abs(m.longitude - lon) < eps
+  );
+}
 
 /**
- * Button zum Hinzufügen einzelner Zielpunkte - zwei Modi:
- * 1. Erste Betätigung: Zeigt die Koordinaten-Eingabefelder an
- * 2. Weitere Betätigungen: Fügt Marker hinzu basierend auf Eingabefeldern
- */
-btnAdd.addEventListener('click', () => {
-  // Erster Klick: Eingabefelder anzeigen
-  if (!coordinateFieldsVisible) {
-    latitudeGroup.style.display = 'block';
-    longitudeGroup.style.display = 'block';
-    coordinateFieldsVisible = true;
-    showPopup('Koordinaten eingeben und erneut auf "Marker hinzufügen" klicken', 2500);
-    return;
-  }
-
-  // Zweiter+ Klick: Marker hinzufügen (ursprüngliche Logik)
-  const lon = parseFloat(lonInput.value);
-  const lat = parseFloat(latInput.value);
-
-  // Validierung der Werte von lat und lon
-  if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    showPopup('Ungültige Koordinaten!', 3000);
-    return;
-  }
-
-  // Prüfung auf Duplikate
-  if (isDuplicateMarker(lat, lon)) {
-    showPopup('Marker an dieser Position existiert bereits!', 3000);
-    return;
-  }
-
-  const newMarker = {
-    longitude: lon,
-    latitude:  lat,
-    popupContent: 'Ziel aktualisiert!'
-  };
-
-  targetCoords.push(newMarker);
-
-  // Zusätzlich zum AR Marker auch Kartenmarker hinzufügen, wenn Karte bereits existiert
-  if (mapView) {
-    const isActive = targetCoords.length === 1; // Erster Marker ist automatisch aktiv
-    mapView.addTargetMarker(
-      newMarker.latitude,
-      newMarker.longitude,
-      newMarker.popupContent,
-      isActive
-    );
-  }
-
-  console.log('Current targetCoords:', targetCoords);
-  showPopup('Marker hinzugefügt!', 1500);
-});
-
-// Test-Button zum Hinzufügen von Testzielen, wird in der produktiven Version entfernt
-/**
- * Fügt 5 Ziele in der Nähe der aktuellen Position hinzu, um die Funktionalität zu testen.
- * Die Werte werden ans Array targetCoords angehängt.
- */
-btnTest.addEventListener('click', async () => {
-  // Aktuelle Position abrufen um Koordinaten der Testziele zu berechnen
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        maximumAge: 0
-      });
-    });
-    
-    currentCoords.latitude = pos.coords.latitude;
-    currentCoords.longitude = pos.coords.longitude;
-    console.log('Aktuelle Koordinaten gesetzt:', currentCoords);
-
-    // Testziele vordefinieren und in einem Batch erstellen
-    const newMarkers = [
-      { 
-        latitude: currentCoords.latitude + 0.00027,
-        longitude: currentCoords.longitude,
-        popupContent: 'Testpunkt ~30m Nord'
-      },
-      { 
-        latitude: currentCoords.latitude,
-        longitude: currentCoords.longitude + 0.0011,
-        popupContent: 'Testpunkt ~80m Ost'
-      },
-      { 
-        latitude: currentCoords.latitude - 0.0027,
-        longitude: currentCoords.longitude,
-        popupContent: 'Testpunkt ~300m Süd'
-      },
-      { 
-        latitude: currentCoords.latitude,
-        longitude: currentCoords.longitude - 0.0054,
-        popupContent: 'Testpunkt ~400m West'
-      },
-      { 
-        latitude: currentCoords.latitude + 0.0081,
-        longitude: currentCoords.longitude + 0.0081,
-        popupContent: 'Testpunkt ~900m Nordost'
-      }
-    ];
-
-    // Duplikat-Prüfung für alle neuen Marker
-    const uniqueMarkers = newMarkers.filter(newMarker => 
-      !isDuplicateMarker(newMarker.latitude, newMarker.longitude)
-    );
-
-    if (uniqueMarkers.length === 0) {
-      showPopup('Alle Testmarker existieren bereits an diesen Positionen!', 3000);
-      return;
-    }
-
-    if (uniqueMarkers.length < newMarkers.length) {
-      const skippedCount = newMarkers.length - uniqueMarkers.length;
-      console.log(`${skippedCount} Marker übersprungen (Duplikate)`);
-    }
-
-    // Nur eindeutige Ziele hinzufügen
-    targetCoords.push(...uniqueMarkers);
-    
-    // Kartenmarker auch hinzufügen, wenn Karte bereits existiert
-    if (mapView) {
-      uniqueMarkers.forEach((marker, index) => {
-        const globalIndex = targetCoords.length - uniqueMarkers.length + index;
-        const isActive = globalIndex === 0; // Erster Marker global ist aktiv
-        mapView.addTargetMarker(
-          marker.latitude,
-          marker.longitude,
-          marker.popupContent,
-          isActive
-        );
-      });
-    }
-    
-    // Feedback über hinzugefügte Marker
-    const addedCount = uniqueMarkers.length;
-    const skippedCount = newMarkers.length - uniqueMarkers.length;
-    
-    if (skippedCount > 0) {
-      showPopup(`${addedCount} neue Marker hinzugefügt, ${skippedCount} Duplikate übersprungen!`, 2500);
-    } else {
-      showPopup(`${addedCount} Marker hinzugefügt!`, 1500);
-    }
-  } catch (err) {
-    console.error('Fehler beim Abrufen der aktuellen Position:', err);
-    handleGpsError(err);
-  }
-});
-
-/**
- * Startet den AR-Modus. Prüft ob mindestens ein Ziel im Array targetCoords vorhanden ist und zeigt ansonsten ein Popup an.
- * Prüft weitere Berechtigungen und zeigt gegebenenfalls Fehlermeldungen an.
- */
-btnStart.addEventListener('click', async() => {
-  console.log('Start button clicked');
-  
-  try {
-    // Prüfe, ob mindestens ein Ziel vorhanden ist
-    if (!targetCoords || targetCoords.length === 0) {
-      showPopup('Bitte mindestens ein Ziel hinzufügen!', 3000);
-      return;
-    }
-
-    // Browser-Support prüfen
-    if (!checkBrowserSupport()) {
-      return;
-    }
-
-    // Initialisierung starten
-    const initProcess = init();
-
-    // Parallel dazu: Device Orientation Permissions anfordern (an dieser Stelle, da iOs dafür eine Nutzerinteraktion braucht)
-    let permissionPromise = Promise.resolve();
-    if (window.DeviceOrientationEvent?.requestPermission) {
-      permissionPromise = DeviceOrientationEvent.requestPermission()
-        .then(result => {
-          if (result !== "granted") {
-            throw { name: 'NotAllowedError', message: 'Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.' };
-          }
-        })
-        .catch(err => {
-          handleSensorError(err);
-          throw err;
-        });
-    }
-
-    // Warte auf beide Prozesse
-    await Promise.all([initProcess, permissionPromise]);
-
-    // Pfadnavigation initialisieren
-    await initPathNavigation();
-
-    // AR-Container anzeigen
-    overlayContainer.style.display = 'none';
-    arContainer.style.display = 'block';
-
-    console.log('AR-Modus erfolgreich gestartet');
-  } catch (err) {
-    console.error("Fehler beim Starten des AR-Modus:", err);
-    if (err && err.name === 'NotAllowedError') {
-      handleSensorError(err);
-    } else {
-      handleGenericError(err);
-    }
-  }
-});
-
-/**
- * Toggle für die Sichtbarkeit des Einstellungen-Menüs
- */
-settingsButton.addEventListener('click', (e) => {
-  e.stopPropagation(); // Verhindert das Schließen durch document-click
-  settingsMenu.classList.toggle('settings-menu--visible');
-});
-
-/**
- * Sorgt dafür, dass das Einstellungen-Menü nicht geschlossen wird, wenn auf das Menü selbst geklickt wird.
- * Teil der Funktionalität, die das Menü schließt, wenn außerhalb geklickt wird.
- */
-settingsMenu.addEventListener('click', (e) => {
-  e.stopPropagation();
-});
-
-/**
- * Schließt das Einstellungen-Menü, wenn außerhalb des Menüs geklickt wird.
- */
-document.addEventListener('click', (e) => {
-  // Verhindere das Schließen des Settings-Menüs, wenn das Copyright-Modal aktiv ist
-  const isModalVisible = copyrightModal.classList.contains('copyright-modal--visible');
-  const isClickOnModal = copyrightModal.contains(e.target);
-  
-  if (settingsMenu.classList.contains('settings-menu--visible') && 
-      !settingsMenu.contains(e.target) && 
-      !settingsButton.contains(e.target) &&
-      !isModalVisible &&
-      !isClickOnModal) {
-    settingsMenu.classList.remove('settings-menu--visible');
-  }
-});
-
-/**
- * Bindet einen Toggle-Checkbox an ein Element
- * @param {*} checkbox Checkbox-Element
- * @param {*} el Element, dessen Sichtbarkeit gesteuert werden soll
+ * Bindet eine Checkbox als Sichtbarkeits-Toggle an ein DOM-Element.
+ * @param {HTMLInputElement|null} checkbox
+ * @param {HTMLElement} el
  */
 function bindToggle(checkbox, el) {
   checkbox?.addEventListener('change', (e) => {
     el.style.display = e.target.checked ? '' : 'none';
   });
 }
-bindToggle(toggleCompass, compassContainer);
-bindToggle(toggleGPS,    gpsAccuracy);
-bindToggle(toggleMap,    mapContainer);
-
-// Copyright Modal Event-Listener
-rescuePointsInfo?.addEventListener('click', (e) => {
-  e.stopPropagation(); // Verhindert das Schließen des Settings-Menüs
-  copyrightModal.classList.add('copyright-modal--visible');
-});
-
-copyrightModalClose?.addEventListener('click', (e) => {
-  e.stopPropagation(); // Verhindert das Schließen des Settings-Menüs
-  copyrightModal.classList.remove('copyright-modal--visible');
-});
-
-// Modal schließen beim Klick auf Overlay
-copyrightModal?.addEventListener('click', (e) => {
-  if (e.target === copyrightModal || e.target.classList.contains('copyright-modal__overlay')) {
-    e.stopPropagation(); // Verhindert das Schließen des Settings-Menüs
-    copyrightModal.classList.remove('copyright-modal--visible');
-  }
-});
-
-// Spezielle Behandlung für Rettungspunkte-Toggle
-toggleRescuePoints?.addEventListener('change', async (e) => {
-  const isEnabled = e.target.checked;
-  
-  if (isEnabled) {
-    await loadAndShowRescuePoints();
-  } else {
-    hideRescuePoints();
-  }
-});
 
 /**
- * Farbwähler für die Pfeilfarbe im Einstellungen-Menü.
- * Nutzt das HTML Element <input type="color">, das einen Standard-Browser-Farbwähler öffnet.
- * Mit Klick auf eine Farbe wird die Farbe des Navigationspfeils durch einen Aufruf von updateArrowColor() geändert.
- */
-arrowColorPicker.addEventListener('change', (e) => {
-  const selectedColor = e.target.value;
-  
-  // Farbvorschau aktualisieren
-  colorPreview.style.background = selectedColor;
-  
-  // Pfeilfarbe ändern (wenn der Pfeil bereits existiert)
-  if (window.arrow && window.arrow.arrowObject) {
-    updateArrowColor(selectedColor);
-  }
-  
-  // Farbe für zukünftige Initialisierung speichern
-  window.selectedArrowColor = selectedColor;
-});
-
-/**
- * Aktualisiert die Farbe des Navigationspfeils.
- * @param {string} color - Die neue Farbe im Hex-Format.
- * @returns {void}
+ * Aktualisiert die Materialfarbe des Navigationspfeils.
+ * @param {string} color HEX-Farbe, z.B. "#ff8800"
  */
 function updateArrowColor(color) {
-  if (!window.arrow || !window.arrow.arrowObject) return;
-  
-  window.arrow.arrowObject.traverse((child) => {
+  if (!arrow?.arrowObject) return;
+  arrow.arrowObject.traverse((child) => {
     if (child.isMesh && child.material) {
-      // Erstelle neues Material mit der gewählten Farbe
       child.material = child.material.clone();
       child.material.color.setHex(color.replace('#', '0x'));
       child.material.needsUpdate = true;
@@ -426,616 +211,160 @@ function updateArrowColor(color) {
   });
 }
 
-// Farbvorschau beim Laden initialisieren
-if (colorPreview) {
+/* ============================================================================
+ * 4) UI / Settings
+ * ========================================================================== */
+
+// Marker-Popup schließen
+closeButton?.addEventListener('click', () => {
+  markerPopup.classList.remove('marker-popup--visible');
+});
+
+// Einstellungsmenü toggeln
+settingsButton?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  settingsMenu.classList.toggle('settings-menu--visible');
+});
+settingsMenu?.addEventListener('click', (e) => e.stopPropagation());
+document.addEventListener('click', (e) => {
+  const isModalVisible = copyrightModal.classList.contains('copyright-modal--visible');
+  const isClickOnModal = copyrightModal.contains(e.target);
+  if (settingsMenu.classList.contains('settings-menu--visible') &&
+      !settingsMenu.contains(e.target) &&
+      !settingsButton.contains(e.target) &&
+      !isModalVisible &&
+      !isClickOnModal) {
+    settingsMenu.classList.remove('settings-menu--visible');
+  }
+});
+
+// Sichtbarkeits-Toggles
+bindToggle(toggleCompass, compassContainer);
+bindToggle(toggleGPS,    gpsAccuracy);
+bindToggle(toggleMap,    mapContainer);
+
+// Copyright-Modal öffnet/schließt
+rescuePointsInfo?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  copyrightModal.classList.add('copyright-modal--visible');
+});
+copyrightModalClose?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  copyrightModal.classList.remove('copyright-modal--visible');
+});
+copyrightModal?.addEventListener('click', (e) => {
+  if (e.target === copyrightModal || e.target.classList.contains('copyright-modal__overlay')) {
+    e.stopPropagation();
+    copyrightModal.classList.remove('copyright-modal--visible');
+  }
+});
+
+// Pfeilfarbe wählen
+arrowColorPicker?.addEventListener('change', (e) => {
+  const selectedColor = e.target.value;
+  colorPreview && (colorPreview.style.background = selectedColor);
+  if (arrow?.arrowObject) updateArrowColor(selectedColor);
+  window.selectedArrowColor = selectedColor;
+});
+if (colorPreview && arrowColorPicker) {
   colorPreview.style.background = arrowColorPicker.value;
 }
 
-/**
- * Event-Listener für das Distanz-Overlay zum Umschalten zwischen den Anzeigemodi
- * Optionen: 'distance' (Standard), 'minutes', 'both'
- */
+// Distanz-Overlay klickbar (Umschalten zwischen Metern/Gehminuten)
 if (distanceOverlay) {
   distanceOverlay.style.cursor = 'pointer';
   distanceOverlay.title = 'Klicken zum Umschalten zwischen Meter/Gehminuten';
-  
   distanceOverlay.addEventListener('click', () => {
-    // Durch die Modi cyceln: distance → minutes → both → distance
-    if (distanceMode === 'distance') {
-      distanceMode = 'minutes';
-    } else if (distanceMode === 'minutes') {
-      distanceMode = 'both';
-    } else {
-      distanceMode = 'distance';
-    }
-    
-    // Sofort die Anzeige aktualisieren
+    distanceMode = distanceMode === 'distance' ? 'minutes' :
+                   distanceMode === 'minutes' ? 'both' : 'distance';
     if (targetCoords[indexActive]) {
       updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
     }
-    
-    console.log('Distance mode changed to :', distanceMode);
   });
 }
 
 /**
- * Aktiviert den Vollbild-Modus
- * Auf iOs Geräten wird der Vollbild-Modus nicht immer unterstützt
- * @returns {Promise} Promise, das resolved wird, wenn Vollbild aktiviert wurde
+ * Button „Marker hinzufügen“
+ * - 1. Klick: Koordinatenfelder anzeigen
+ * - ab 2. Klick: Marker mit eingegebenen Koordinaten anlegen
  */
-async function enterFullscreen() {
-  try {
-    if (document.documentElement.requestFullscreen) {
-      await document.documentElement.requestFullscreen();
-    } else if (document.documentElement.webkitRequestFullscreen) {
-      await document.documentElement.webkitRequestFullscreen();
-    } else if (document.documentElement.msRequestFullscreen) {
-      await document.documentElement.msRequestFullscreen();
-    }
-    console.log('Vollbild-Modus aktiviert');
-  } catch (error) {
-    console.warn('Vollbild-Modus konnte nicht aktiviert werden:', error);
-    // Nicht kritisch, Anwendung kann trotzdem fortfahren
-  }
-}
-
-/**
- * Initialisiert die AR-Szene, setzt die Kamera und registriert Event-Listener.
- * @returns {Promise} Promise, das resolved wird, wenn die Initialisierung abgeschlossen ist
- */
-async function init() {
-  console.log('init() aufgerufen');
-  
-  // Scene und Renderer Setup
-  sceneEl = document.querySelector('a-scene');
-  renderer = sceneEl.renderer;
-  cameraEl = document.getElementById('camera');
-  
-  // Kamera Setup mit Retry
-  const setupCamera = async () => {
-    const threeCam = cameraEl.getObject3D('camera');
-    if (!threeCam) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return setupCamera();
-    }
-    return threeCam;
-  };
-
-  try {
-    threeCamera = await setupCamera();
-    console.log('threeCamera initialisiert:', threeCamera);
-
-    // Event Listener für Resize
-    const handleResize = () => {
-      // Screen Orientation aktualisieren
-      screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
-      
-      const updateCamera = () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        threeCamera.aspect = window.innerWidth / window.innerHeight;
-        threeCamera.updateProjectionMatrix();
-      };
-      
-      if (isIOS) {
-        setTimeout(updateCamera, 200);
-      } else {
-        updateCamera();
-      }
-    };
-    window.addEventListener("resize", handleResize);
-
-    // Zusätzlich orientationchange Event für bessere Kompatibilität
-    window.addEventListener("orientationchange", () => {
-      setTimeout(() => {
-        screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
-        console.log('Orientation changed:', screenOrientation);
-      }, 100);
-    });
-
-    // LocAR Setup
-    const comp = cameraEl.components['locar-camera'];
-    if (comp?.locar) {
-      locar = comp.locar;
-      controls = comp.deviceOrientationControls;
-      console.log('LocAR Setup Debug:', {
-        locarType: locar.constructor.name,
-        locarMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(locar)),
-        hasLonLatToWorldCoords: typeof locar.lonLatToWorldCoords === 'function'
-      });
-      try {
-        locar.startGps();
-      } catch (err) {
-        handleGpsError(err);
-      }
-    } else {
-      handleGenericError(new Error('locar-camera fehlt oder locar nicht initialisiert'));
-      throw new Error('locar-camera fehlt oder locar nicht initialisiert');
-    }
-    // MapView initialisieren mit Callback für Marker-Klicks
-    mapView = new MapView({
-      onMarkerClick: (index, title) => {
-        console.log('Map marker clicked:', index, title);
-        if (index !== indexActive) {
-          setActive(index);
-          showPopup('Ziel aktualisiert!', 2000);
-          updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
-        } else {
-          showPopup(title, 3000);
-        }
-      },
-      onMapInitialized: () => {
-        // Wenn die Karte initialisiert wird, alle bestehenden Marker hinzufügen
-        console.log('Map initialized, adding existing markers...');
-        syncAllMarkersToMap();
-        
-        // Geladene Pfade zur Karte hinzufügen, falls vorhanden.
-        if (pathManager && pathManager.paths && pathManager.paths.length > 0) {
-          console.log('Map initialized, adding existing paths from pathManager...', {
-            pathManager: !!pathManager,
-            paths: pathManager.paths,
-            pathsLength: pathManager.paths.length,
-            activePathIndex: activePathIndex
-          });
-          mapView.addPaths(pathManager.paths, activePathIndex);
-        } else if (window.pendingMapPaths && window.pendingMapPaths.length > 0) {
-          console.log('Map initialized, adding pending paths...', {
-            pendingPaths: window.pendingMapPaths,
-            pathsLength: window.pendingMapPaths.length,
-            activePathIndex: activePathIndex
-          });
-          mapView.addPaths(window.pendingMapPaths, activePathIndex);
-          window.pendingMapPaths = null; // Aufräumen
-        } else {
-          console.log('Keine Pfade vorhanden beim Karten-Init:', {
-            pathManager: !!pathManager,
-            paths: pathManager?.paths,
-            pathsLength: pathManager?.paths?.length,
-            pendingMapPaths: window.pendingMapPaths
-          });
-        }
-      }
-    });
-    
-    // Event Listeners
-    cameraEl.addEventListener('gpsupdate', onGpsUpdate);
-    renderer.setAnimationLoop(animate);
-    
-    console.log('AR-Szene erfolgreich initialisiert');
-  } catch (error) {
-    console.error('Fehler bei der Initialisierung:', error);
-    handleGenericError(error);
-    throw error;
-  }
-}
-
-/**
- * Initialisiert die Pfad-Navigation
- */
-async function initPathNavigation() {
-  // PathManager initialisieren
-  pathManager = new PathManager({
-    locar: locar,
-    camera: threeCamera
-  });
-  
-  console.log('Pfad-Navigation initialisiert');
-}
-
-/**
- * AR-Pfadobjekt für den aktiven Pfad erstellen
- * @param {Object} activePath - Der aktive Pfad
- */
-function createARPaths(activePath) {
-  removeARPaths();
-  
-  if (!activePath) {
-    console.log('Kein aktiver Pfad - keine AR-Pfade erstellt');
+btnAdd?.addEventListener('click', () => {
+  if (!coordinateFieldsVisible) {
+    latitudeGroup.style.display  = 'block';
+    longitudeGroup.style.display = 'block';
+    coordinateFieldsVisible = true;
+    showPopup('Koordinaten eingeben und erneut auf „Marker hinzufügen“ klicken', 2500);
     return;
   }
-  
-  const common = {
-    locar,
-    camera: threeCamera,
-    path: activePath,
-    isActive: true // Da es nur der aktive Pfad ist
-  };
-  
-  let arPath;
-  if (pathStyle === 'flowline') {
-    arPath = new ARPathFlowLine({ ...common, color: 0x00ff88, width: 0.5, height: 2.6, dashSize: 3, gapSize: 1.2, speed: 2.2 });
-  } else if (pathStyle === 'chevrons') {
-    arPath = new ARPathChevrons({ ...common, color: 0xff8800, spacing: 5.0, scale: 0.9, height: 0.5, speed: 2.0 });
-  } else {
-    arPath = new ARPathTube({ ...common, color: 0x00ff00, radius: 0.3, height: 0.5 });
-  }
-  
-  arPath.createPathObject();
-  arPaths = [arPath]; // Nur ein Pfad im Array
-  
-  console.log(`AR-Pfad erstellt für: ${activePath.name || 'Unbenannter Pfad'}`);
-}
 
-/**
- * Alle AR-Pfadobjekte entfernen
- */
-function removeARPaths() {
-  arPaths.forEach(arPath => {
-    arPath.removePath();
-  });
-  
-  arPaths = [];
-}
-
-/**
- * Aktiven Pfad setzen
- * @param {number} index - Index des zu aktivierenden Pfads
- */
-function setActivePath(index) {
-  if (!pathManager || index < 0 || index >= pathManager.paths.length) {
-    activePathIndex = -1;
-    removeARPaths(); // Entferne AR-Pfade wenn kein gültiger Pfad
+  const lon = parseFloat(lonInput.value);
+  const lat = parseFloat(latInput.value);
+  if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    showPopup('Ungültige Koordinaten!', 3000);
     return;
   }
-  
-  activePathIndex = index;
-  
-  // PathManager aktualisieren
-  pathManager.setActivePath(index);
-  
-  // Karte aktualisieren
+  if (isDuplicateMarker(lat, lon)) {
+    showPopup('Marker an dieser Position existiert bereits!', 3000);
+    return;
+  }
+
+  const markerData = { longitude: lon, latitude: lat, popupContent: 'Ziel aktualisiert!' };
+  targetCoords.push(markerData);
+
+  // Kartenmarker (falls Karte existiert)
   if (mapView) {
-    mapView.setActivePath(index);
+    const isActive = targetCoords.length === 1;
+    mapView.addTargetMarker(markerData.latitude, markerData.longitude, markerData.popupContent, isActive);
   }
-  
-  // AR-Pfad für den neuen aktiven Pfad erstellen
-  if (locar && threeCamera) {
-    createARPaths(pathManager.paths[activePathIndex]);
-  }
-  
-  // Path Switcher UI aktualisieren
-  updatePathSwitcherUI();
-  
-  // Popup mit Pfadinfo anzeigen
-  const path = pathManager.paths[index];
-  const distance = path.distance ? `${(path.distance / 1000).toFixed(2)} km` : '';
-  const name = path.properties.name || `Weg ${index + 1}`;
-  
-  showPopup(`${name} ${distance ? `(${distance})` : ''}`, 2000);
-  
-  console.log(`Aktiver Pfad auf Index ${index} gesetzt`);
-}
+
+  showPopup('Marker hinzugefügt!', 1500);
+});
 
 /**
- * Lädt und zeigt Rettungspunkte im 10km Umkreis an
+ * DEBUG: fügt mehrere Testmarker in der Nähe hinzu (optional nutzbar).
  */
-async function loadAndShowRescuePoints() {
+btnTest?.addEventListener('click', async () => {
   try {
-    if (!currentCoords.latitude || !currentCoords.longitude) {
-      showPopup('GPS-Position noch nicht verfügbar. Warten Sie auf GPS-Signal...', 3000);
-      return;
-    }
-
-    if (!pathManager) {
-      pathManager = new PathManager({ locar, camera: threeCamera });
-    }
-
-    showPopup('Lade Rettungspunkte...', 0);
-
-    const rescuePoints = await pathManager.loadRescuePointsFromGPX(
-      './rescuepoints/NordrheinWestfalen.gpx',
-      currentCoords,
-      10000 // 10km Radius
-    );
-
-    showPopup('', 0, true); // Ladeindikator ausblenden
-
-    if (rescuePoints.length === 0) {
-      showPopup('Keine Rettungspunkte im 10km Umkreis gefunden', 3000);
-      return;
-    }
-
-    // Rettungspunkte als AR-Marker hinzufügen
-    rescuePoints.forEach((rescuePoint, index) => {
-      const markerData = {
-        latitude: rescuePoint.latitude,
-        longitude: rescuePoint.longitude,
-        popupContent: `🚑 ${rescuePoint.name}\nEntfernung: ${(rescuePoint.distance/1000).toFixed(1)}km`,
-        markerType: 'rescue',
-        rescuePointId: rescuePoint.id
-      };
-
-      // Prüfung auf Duplikate vor dem Hinzufügen
-      const isDuplicate = targetCoords.some(coord => 
-        Math.abs(coord.latitude - rescuePoint.latitude) < 0.0001 && 
-        Math.abs(coord.longitude - rescuePoint.longitude) < 0.0001
-      );
-
-      if (!isDuplicate) {
-        // Zur targetCoords Liste hinzufügen für 3D-Szene und Navigation
-        targetCoords.push(markerData);
-        console.log(`Rettungspunkt als Zielmarker hinzugefügt: ${rescuePoint.name}`);
-        
-        // Sofort den neuen Marker zur AR-Szene hinzufügen (falls AR aktiv ist)
-        if (locar && threeCamera) {
-          const newIndex = targetCoords.length - 1;
-          addMarker(markerData, newIndex);
-          console.log(`AR-Zielmarker für Rettungspunkt erstellt: Index ${newIndex}`);
-        }
-      }
-
-      // Auch zur Karte hinzufügen, falls sie bereits existiert
-      if (mapView && mapView.map) {
-        // Als Rettungspunkt-Marker hinzufügen (rot)
-        mapView.addRescuePointMarker(
-          rescuePoint.latitude,
-          rescuePoint.longitude,
-          rescuePoint.name,
-          rescuePoint.distance
-        );
-      }
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, maximumAge: 0 });
     });
+    currentCoords.latitude  = pos.coords.latitude;
+    currentCoords.longitude = pos.coords.longitude;
 
-    rescuePointsVisible = true;
-    const count = rescuePoints.length;
-    const nearestDistance = (rescuePoints[0].distance / 1000).toFixed(1);
-    
-    // Kurze Copyright-Einblendung beim Laden
-    showPopup(`${count} Rettungspunkte geladen (nächster: ${nearestDistance}km)\n© KWF-Rettungspunkte v2.18`, 4000);
-    
-    console.log(`Rettungspunkte Integration:`, {
-      geladenePunkte: count,
-      targetCoordsLength: targetCoords.length,
-      markersLength: markers.length
-    });
+    const ms = [
+      { latitude: currentCoords.latitude + 0.00027, longitude: currentCoords.longitude,            popupContent: 'Testpunkt ~30m Nord' },
+      { latitude: currentCoords.latitude,            longitude: currentCoords.longitude + 0.0011,  popupContent: 'Testpunkt ~80m Ost' },
+      { latitude: currentCoords.latitude - 0.0027,   longitude: currentCoords.longitude,            popupContent: 'Testpunkt ~300m Süd' },
+      { latitude: currentCoords.latitude,            longitude: currentCoords.longitude - 0.0054,  popupContent: 'Testpunkt ~400m West' },
+      { latitude: currentCoords.latitude + 0.0081,   longitude: currentCoords.longitude + 0.0081,  popupContent: 'Testpunkt ~900m Nordost' }
+    ];
 
-  } catch (error) {
-    console.error('Fehler beim Laden der Rettungspunkte:', error);
-    showPopup('Fehler beim Laden der Rettungspunkte', 3000);
-  }
-}
+    const unique = ms.filter(m => !isDuplicateMarker(m.latitude, m.longitude));
+    if (!unique.length) return showPopup('Alle Testmarker existieren bereits!', 3000);
 
-/**
- * Versteckt alle Rettungspunkte-Marker
- */
-function hideRescuePoints() {
-  // Rettungspunkte aus targetCoords entfernen
-  const originalLength = targetCoords.length;
-  const rescueIndices = [];
-  
-  // Sammle Indizes der zu entfernenden Rettungspunkte
-  targetCoords.forEach((coord, index) => {
-    if (coord.markerType === 'rescue') {
-      rescueIndices.push(index);
-    }
-  });
-  
-  // Entferne Rettungspunkte aus targetCoords
-  targetCoords = targetCoords.filter(coord => coord.markerType !== 'rescue');
-  const removedCount = originalLength - targetCoords.length;
-  
-  // Entferne entsprechende Marker aus der markers Array (in umgekehrter Reihenfolge)
-  rescueIndices.reverse().forEach(index => {
-    if (markers[index]) {
-      const marker = markers[index];
-      if (marker.markerAnchor && marker.markerAnchor.parentNode) {
-        marker.markerAnchor.parentNode.removeChild(marker.markerAnchor);
-      } else if (marker.markerObject && marker.markerObject.parent) {
-        marker.markerObject.parent.remove(marker.markerObject);
-      }
-      marker.dispose();
-
-      markers.splice(index, 1);
-      console.log(`Marker bei Index ${index} aus markers Array entfernt`);
-    }
-  });
-  
-  if (removedCount > 0) {
-    console.log(`${removedCount} Rettungspunkte aus Zielmarkerliste entfernt`);
-    
-    // Aktiven Index anpassen, falls ein Rettungspunkt aktiv war
-    if (rescueIndices.includes(indexActive)) {
-      // Falls der aktive Marker ein Rettungspunkt war, setze auf den ersten verbleibenden Marker
-      if (targetCoords.length > 0) {
-        indexActive = 0;
-        setActive(0); // Stelle sicher, dass der neue aktive Marker korrekt dargestellt wird
-        console.log(`Aktiven Index auf ersten verbleibenden Marker (${indexActive}) gesetzt`);
-      } else {
-        indexActive = -1;
-      }
-    } else if (indexActive >= targetCoords.length && targetCoords.length > 0) {
-      // Falls der aktive Index außerhalb des gültigen Bereichs liegt
-      indexActive = targetCoords.length - 1;
-      setActive(indexActive);
-      console.log(`Aktiven Index auf ${indexActive} angepasst`);
-    }
-    
-    // MapView Marker aktualisieren, falls vorhanden
+    targetCoords.push(...unique);
     if (mapView) {
-      mapView.removeAllTargetMarkers();
-      // Verbleibende Zielmarker wieder hinzufügen
-      targetCoords.forEach((coord, index) => {
-        const isActive = index === indexActive;
-        mapView.addTargetMarker(
-          coord.latitude,
-          coord.longitude,
-          coord.popupContent,
-          isActive,
-          index
-        );
+      unique.forEach((m, idx) => {
+        const globalIndex = targetCoords.length - unique.length + idx;
+        mapView.addTargetMarker(m.latitude, m.longitude, m.popupContent, globalIndex === 0);
       });
     }
-  }
 
-  // Karten-Marker entfernen
-  if (mapView) {
-    mapView.removeRescuePointMarkers();
-  }
-
-  rescuePointsVisible = false;
-  console.log('Rettungspunkte ausgeblendet');
-}
-
-/**
- * GPS-Update-Handler
- * Bekommt die aktuelle GPS-Position und Genauigkeit und aktualisiert die GPS-Genauigkeitsanzeige, Kartenposition
- * und die AR Elemente.
- * Fügt AR und UI Elemente initial hinzu, wenn sie noch nicht existieren
- * 
- */
-function onGpsUpdate(e) {
-  //console.log('gpsupdate event:', e.detail.position);
-  try {
-    const pos = e.detail.position.coords;
-    currentCoords.latitude  = pos.latitude;
-    currentCoords.longitude = pos.longitude;
-    
-    // Make current GPS position globally accessible for distance calculations
-    window.currentGPSPosition = {
-      latitude: pos.latitude,
-      longitude: pos.longitude
-    };
-    
-    //console.log('currentCoords:', currentCoords);
-
-    const accuracy = pos.accuracy; // in Metern
-    if (gpsAccuracyValue && gpsIndicator) {
-      // Text aktualisieren:
-      gpsAccuracyValue.innerText = `~${Math.round(accuracy)}m`;
-
-      // Klasse setzen je nach Schwellenwert:
-      // <5m = high, <15m = medium, sonst low
-      gpsIndicator.classList.remove('gps-indicator--high', 'gps-indicator--medium', 'gps-indicator--low');
-      if (accuracy < 5) {
-        gpsIndicator.classList.add('gps-indicator--high');
-      } else if (accuracy < 15) {
-        gpsIndicator.classList.add('gps-indicator--medium');
-      } else {
-        gpsIndicator.classList.add('gps-indicator--low');
-      }
-    }
-
-    // Kartenposition aktualisieren
-    if (mapView) {
-      mapView.updateUserPosition(pos.latitude, pos.longitude);
-    }
-
-    // Alle UI-Elemente hinzufügen, wenn sie noch nicht existieren
-    if (targetCoords.length && markers.length === 0) {
-      addCompass();
-      addArrow();
-      addAllMarkers();
-      setActive(0);
-    }
-    
-    // Ausstehende Pfade erstellen, wenn AR jetzt bereit ist
-    if (window.pendingPaths && locar && threeCamera && !arPaths.length) {
-      console.log('Erstelle ausstehenden AR-Pfad...');
-      // Finde den aktiven Pfad aus den ausstehenden Pfaden
-      const activePath = window.pendingPaths[activePathIndex] || window.pendingPaths[0];
-      if (activePath) {
-        createARPaths(activePath);
-      }
-      window.pendingPaths = null;
-    }
-
-    if (arrow) arrow.update();
-    
-    // Sicherstellen, dass Marker aktualisiert werden, wenn sie existieren
-    if (markers.length > 0) {
-      markers.forEach(m => {
-        // Überprüfen, ob das Marker-Objekt noch existiert
-        if (m.markerObject && m.markerObject.parent) {
-          m.update();
-        } else {
-          console.warn('Marker exists but markerObject is detached or missing');
-        }
-      });
-    }
-    
-    // Automatische Pfadsuche und Aktivierung, wenn Pfade geladen sind
-    if (pathManager && pathManager.paths && pathManager.paths.length > 0) {
-      const nearest = pathManager.findNearestPath({ latitude: pos.latitude, longitude: pos.longitude });
-      if (nearest) {
-        const distance = nearest.distance;
-        const nearestPathIndex = pathManager.paths.findIndex(p => p.id === nearest.path.id);
-        
-        // Aktiviere den Pfad automatisch, wenn der Nutzer innerhalb von 100m ist
-        if (distance < 100 && nearestPathIndex !== activePathIndex) {
-          console.log(`Auto-activating nearest path ${nearestPathIndex} (${nearest.path.name}), distance: ${distance.toFixed(1)}m`);
-          setActivePath(nearestPathIndex);
-        }
-      }
-    }
-    
-    //updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
+    const skipped = ms.length - unique.length;
+    showPopup(`${unique.length} Marker hinzugefügt${skipped ? `, ${skipped} Duplikate übersprungen` : ''}!`, 2000);
   } catch (err) {
     handleGpsError(err);
   }
-}
+});
+
+/* ============================================================================
+ * 5) AR-/Karten-Elemente: Kompass, Pfeil, Marker
+ * ========================================================================== */
 
 /**
- * Haupt-Animationsschleife, die regelmäßig aufgerufen wird, aktualisiert die Eigenschaften der AR-Elemente.
- * Dreht die Karte mit, wenn mapView und controls existieren.
- */
-function animate() {
-  if (controls) controls.update();
-
-  if (arrow) arrow.update();
-
-  // Marker aktualisieren, wenn sie existieren
-  if (markers.length > 0) {
-    markers.forEach(m => {
-      if (m.markerObject && m.markerObject.parent) {
-        m.update();
-      }
-    });
-  }
-
-  // AR-Path aktualisieren, wenn er existiert
-  if (arPaths && arPaths.length > 0 && arPaths[0]) {
-    const activePath = arPaths[0];
-    if (activePath && typeof activePath.update === 'function') {
-      activePath.update();
-    }
-  }
-
-  if (compass) compass.update();
-
-  // Karte mitdrehen lassen, wenn mapView und controls existieren
-  if (mapView && mapView.map && controls && typeof controls.getCorrectedHeading === 'function') {
-    let heading = controls.getCorrectedHeading();
-    
-    if (isIOS) {
-      mapView.rotateToHeading(-heading); // iOS: Vorzeichen invertieren
-    } else {
-      // Android: Landscape-Modus-Korrektur
-      let orientationOffset = 0;
-      
-      if (screenOrientation.type?.includes('landscape') || Math.abs(screenOrientation.angle) === 90) {
-        // Unterscheidung zwischen den beiden Landscape-Modi
-        if (screenOrientation.type === 'landscape-primary' || screenOrientation.angle === 90) {
-          orientationOffset = 90;  // Handy nach links gedreht (Home-Button rechts)
-        } else if (screenOrientation.type === 'landscape-secondary' || screenOrientation.angle === 270 || screenOrientation.angle === -90) {
-          orientationOffset = -90; // Handy nach rechts gedreht (Home-Button links)
-        }
-        console.log(`Android Landscape: type=${screenOrientation.type}, angle=${screenOrientation.angle}, offset=${orientationOffset}`);
-      }
-      
-      mapView.rotateToHeading(heading + orientationOffset);
-    }
-  }
-  updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
-  // Nur rendern, wenn erforderlich
-  if (renderer && threeCamera) {
-    renderer.render(sceneEl.object3D, threeCamera);
-  }
-}
-
-/**
- * Fügt das Kompass UI zur AR-Szene hinzu.
+ * Fügt das Kompass-UI hinzu.
  */
 function addCompass() {
-  console.log('addCompass()');
   compass = addCompassToScene({
     deviceOrientationControl: controls,
     compassArrowId: 'compassArrow',
@@ -1047,10 +376,10 @@ function addCompass() {
 }
 
 /**
- * Fügt den Navigationspfeil zur AR-Szene mit ensprechendem glb Modell hinzu.
+ * Fügt den Navigationspfeil hinzu.
+ * Setzt zusätzlich window.arrow, damit andere UI-Teile (z. B. Farbwähler) darauf zugreifen können.
  */
 function addArrow() {
-  console.log('addArrow()');
   arrow = addArrowToScene({
     locar,
     camera: threeCamera,
@@ -1061,52 +390,38 @@ function addArrow() {
     getScreenOrientation: () => screenOrientation,
     getIndexActiveMarker: () => indexActive
   });
+  window.arrow = arrow; // für Farbwähler etc.
 }
 
 /**
- * Fügt automatisch einen Zielmarker am Ende eines geladenen Pfades hinzu
- * @param {Object} path - Der Pfad-Objekt mit wgs84Coords Array
+ * Erstellt (oder findet) den Zielmarker am Endpunkt eines Pfades.
+ * Erzeugt bei laufender AR den 3D-Marker sofort.
+ * @param {{wgs84Coords:number[][], name?:string}} path
+ * @returns {number} Index des (neu erstellten oder vorhandenen) Markers, -1 bei Fehler
  */
 function addPathEndpointMarker(path) {
-  console.log('addPathEndpointMarker', path);
-  
-  if (!path || !path.wgs84Coords || path.wgs84Coords.length === 0) {
-    console.warn('Kein gültiger Pfad oder keine Koordinaten für Endpoint-Marker');
-    return;
-  }
-  
-  // Letzten Punkt des Pfades ermitteln
-  const lastCoordinate = path.wgs84Coords[path.wgs84Coords.length - 1];
-  const longitude = lastCoordinate[0];
-  const latitude = lastCoordinate[1];
-  
-  // Prüfen ob bereits ein Marker an dieser Position existiert
-  if (isDuplicateMarker(latitude, longitude)) {
-    console.log('Marker am Pfad-Ende bereits vorhanden, überspringe...');
-    return;
-  }
-  
-  // Marker-Daten erstellen und NUR zu targetCoords hinzufügen (wie bei normalen Markern)
-  const markerData = {
-    latitude: latitude,
-    longitude: longitude,
-    popupContent: `Ziel: ${path.name || 'Pfad-Ende'}`
-  };
-  
-  // Marker zu targetCoords hinzufügen (wird später mit addAllMarkers() erstellt)
+  if (!path?.wgs84Coords?.length) return -1;
+
+  const last = path.wgs84Coords[path.wgs84Coords.length - 1];
+  const lon = last[0], lat = last[1];
+
+  const existingIndex = findMarkerIndexByLatLon(lat, lon, 1e-5);
+  if (existingIndex !== -1) return existingIndex;
+
+  const markerData = { latitude: lat, longitude: lon, popupContent: `Ziel: ${path.name || 'Pfad-Ende'}` };
   targetCoords.push(markerData);
-  
-  console.log(`Zielmarker-Daten am Ende des Pfades hinzugefügt: ${latitude}, ${longitude}`);
-  console.log('Marker wird beim nächsten GPS-Update durch addAllMarkers() erstellt');
+  const newIndex = targetCoords.length - 1;
+
+  if (locar && threeCamera) addMarker(markerData, newIndex);
+  return newIndex;
 }
 
 /**
- * Fügt einen Marker zur AR-Szene hinzu und registriert einen Klick-Handler.
- * @param {*} data Daten für den Marker, einschließlich Latitude, Longitude und Popup-Inhalt
- * @param {*} i Index des Markers im targetCoords Array
+ * Fügt einen einzelnen AR-Marker hinzu und registriert Klick-Handling.
+ * @param {{latitude:number, longitude:number, popupContent?:string, markerType?:string}} data
+ * @param {number} i Index in targetCoords
  */
 function addMarker(data, i) {
-  console.log('addMarker', i, data);
   const marker = new TargetMarker({
     locar,
     camera: threeCamera,
@@ -1116,272 +431,620 @@ function addMarker(data, i) {
     onClick: () => {
       if (i !== indexActive) {
         setActive(i);
-        showPopup('Ziel aktualisiert!', 5000);
+        showPopup('Ziel aktualisiert!', 2000);
       } else {
-        showPopup(data.popupContent, 0);
+        showPopup(data.popupContent || `Ziel ${i + 1}`, 1200);
       }
     },
     deviceOrientationControl: controls
   });
-  marker.initMarker('./images/map-marker-orange.png');
+  
+  // Icon basierend auf Marker-Typ wählen
+  const iconPath = data.markerType === 'rescue' 
+    ? './images/schild_rettungspunkt.png'
+    : './images/map-marker-orange.png';
+  
+  marker.initMarker(iconPath);
   markers.push(marker);
-  console.log('Markers array length:', markers.length);
-    // Marker auch zur Karte hinzufügen, falls sie bereits initialisiert ist
-  if (mapView && mapView.map) {
-    const isActive = i === indexActive;
-    console.log(`Adding single marker to map: ${data.popupContent || `Ziel ${i + 1}`}, active: ${isActive}`);
+
+  // Kartenmarker synchronisieren
+  if (mapView?.map) {
     mapView.addTargetMarker(
       data.latitude,
       data.longitude,
       data.popupContent || `Ziel ${i + 1}`,
-      isActive,
-      i  // Explizit den Index übergeben
+      i === indexActive,
+      i
     );
   }
 }
 
 /**
- * Ruft für alle Marker aus dem Array targetCoords die addMarker-Funktion auf.
+ * Fügt alle Marker aus targetCoords in die AR-Szene ein und synchronisiert die Karte.
  */
 function addAllMarkers() {
-  console.log('addAllMarkers, count:', targetCoords.length);
-  
-  // AR Marker hinzufügen
   targetCoords.forEach((d, i) => addMarker(d, i));
-  
-  // Zusätzliche Synchronisation mit der Karte, falls sie bereits existiert
-  if (mapView && mapView.map) {
-    console.log('Map exists, syncing all markers...');
-    syncAllMarkersToMap();
-  }
+  if (mapView?.map) syncAllMarkersToMap();
 }
 
 /**
- * Setzt den aktiven Marker und aktualisiert die Marker-Bildquellen.
- * @param {*} i der Index des zu aktiv werdenden Markers
+ * Setzt den aktiven Marker (rot) und synchronisiert Karte/Overlay.
+ * @param {number} i Index des aktiven Markers
  */
 function setActive(i) {
-  console.log('setActive marker:', i);
   indexActive = i;
-  
-  // AR-Marker aktualisieren
+
+  // AR-Marker-Bild aktualisieren
   markers.forEach((m, idx) => {
-    m.updateMarkerImage(
-      idx === i
-        ? './images/map-marker-rot.png'
-        : './images/map-marker-orange.png'
-    );
+    // Rettungspunkte behalten ihr spezielles Icon
+    if (targetCoords[idx]?.markerType === 'rescue') {
+      m.updateMarkerImage('./images/schild_rettungspunkt.png');
+    } else {
+      m.updateMarkerImage(idx === i ? './images/map-marker-rot.png' : './images/map-marker-orange.png');
+    }
   });
-  
-  // Karten-Marker aktualisieren
-  if (mapView) {
-    mapView.setActiveMarker(i);
-  }
+
+  // Kartenmarker aktualisieren
+  mapView?.setActiveMarker(i);
 }
 
 /**
- * Synchronisiert alle bestehenden AR-Marker mit der Karte
+ * Synchronisiert alle Zielmarker mit der Karte (löscht/fügt neu hinzu).
  */
 function syncAllMarkersToMap() {
-  if (!mapView || !mapView.map) {
-    console.log('MapView or map not available for sync');
-    return;
-  }
-  
-  console.log(`Syncing ${targetCoords.length} markers to map...`);
-  
-  // Alle alten Karten-Marker entfernen
+  if (!mapView?.map) return;
+
   mapView.removeAllTargetMarkers();
-  
-  // Alle AR-Marker zur Karte hinzufügen
   targetCoords.forEach((coords, index) => {
-    const isActive = index === indexActive;
-    console.log(`Syncing marker ${index}: ${coords.popupContent || `Ziel ${index + 1}`}, active: ${isActive}`);
-    mapView.addTargetMarker(
-      coords.latitude,
-      coords.longitude,
-      coords.popupContent || `Ziel ${index + 1}`,
-      isActive,
-      index  // Explizit den Index übergeben
-    );
+    // Rettungspunkte werden separat über addRescuePointMarker hinzugefügt
+    if (coords.markerType !== 'rescue') {
+      mapView.addTargetMarker(
+        coords.latitude,
+        coords.longitude,
+        coords.popupContent || `Ziel ${index + 1}`,
+        index === indexActive,
+        index
+      );
+    }
   });
-  
-  // Benutzendenposition zur Karte hinzufügen, falls verfügbar
+
   if (currentCoords.latitude && currentCoords.longitude) {
     mapView.updateUserPosition(currentCoords.latitude, currentCoords.longitude);
   }
 }
 
-// Event-Listener für Pfad-Laden-Button (direkt beim Laden der Seite)
-if (btnLoadPaths) {
-  btnLoadPaths.addEventListener('click', async () => {
-    try {
-      console.log('Pfad-Laden-Button wurde geklickt');
-      
-      // PathManager initialisieren, falls noch nicht vorhanden
-      if (!pathManager) {
-        pathManager = new PathManager();
-      }
-      
-      // Ladeindikator anzeigen
-      showPopup('Lade Wegedaten...', 0);
-      
-      // Mehrere Pfade aus JSON laden
-      const pathUrls = [
-        './test-paths/route_corrected.json',
-        './test-paths/new_route_alt.json'
-      ];
-      const paths = await pathManager.loadMultiplePathsFromJson(pathUrls);
-      console.log('Geladene Pfade:', paths);
-      
-      // Ladeindikator ausblenden
-      showPopup('', 0, true);
-      
-      if (paths.length === 0) {
-        showPopup('Keine Wege gefunden', 3000);
-        return;
-      }
-      
-      // Pfade auf Karte anzeigen (falls Karte bereits existiert)
-      if (mapView) {
-        console.log('MapView existiert, füge Pfade hinzu...');
-        mapView.addPaths(paths);
-      } else {
-        console.log('MapView existiert noch nicht - Pfade werden später hinzugefügt');
-        // Pfade für später speichern
-        window.pendingMapPaths = paths;
-      }
-      
-      // AR-Darstellungen erstellen (falls AR bereits läuft)
-      if (sceneEl && locar && threeCamera) {
-        // Nur den ersten Pfad (wird aktiv) erstellen
-        if (paths.length > 0) {
-          createARPaths(paths[0]);
-          console.log('AR-Pfad für ersten Pfad sofort erstellt');
-        }
-      } else {
-        console.log('AR noch nicht bereit - Pfade werden später erstellt');
-        // Pfade für später speichern
-        window.pendingPaths = paths;
-      }
-      
-      // Automatisch den ersten Pfad aktivieren
-      if (paths.length > 0) {
-        setActivePath(0);
-        
-        // Zielmarker am Ende des ersten Weges hinzufügen
-        addPathEndpointMarker(paths[0]);
-        
-        // Path Switcher UI anzeigen, wenn mehrere Pfade vorhanden
-        updatePathSwitcherUI();
-      }
-      
-      showPopup(`${paths.length} Wege geladen`, 2000);
-    } catch (error) {
-      console.error('Fehler beim Laden der Pfade:', error);
-      showPopup('Fehler beim Laden der Pfade', 3000);
-    }
-  });
+/* ============================================================================
+ * 6) Pfade / AR-Darstellungen
+ * ========================================================================== */
+
+/**
+ * Erzeugt die AR-Darstellung für den aktiven Pfad (Flowline/Chevrons/Tube).
+ * @param {{name?:string}} activePath
+ */
+function createARPaths(activePath) {
+  removeARPaths();
+  if (!activePath) return;
+
+  const common = { locar, camera: threeCamera, path: activePath, isActive: true };
+  let arPath;
+
+  if (pathStyle === 'flowline') {
+    arPath = new ARPathFlowLine({ ...common, color: 0x00ff88, width: 0.5, height: 2.6, dashSize: 3, gapSize: 1.2, speed: 2.2 });
+  } else if (pathStyle === 'chevrons') {
+    arPath = new ARPathChevrons({ ...common, color: 0xff8800, spacing: 5.0, scale: 0.9, height: 0.1, speed: 2.0 });
+  } else {
+    arPath = new ARPathTube({ ...common, color: 0x00ff00, radius: 0.3, height: 0.5 });
+  }
+
+  arPath.createPathObject();
+  arPaths = [arPath];
+}
+
+/** Entfernt alle AR-Pfadobjekte. */
+function removeARPaths() {
+  arPaths.forEach(p => p.removePath());
+  arPaths = [];
 }
 
 /**
- * Aktualisiert die Path Switcher UI
+ * Setzt den aktiven Pfad (inkl. AR-Darstellung, Karten-Highlight und Zielmarker-Aktualisierung).
+ * @param {number} index Pfadindex
  */
+function setActivePath(index) {
+  if (!pathManager || index < 0 || index >= pathManager.paths.length) {
+    activePathIndex = -1;
+    removeARPaths();
+    return;
+  }
+
+  activePathIndex = index;
+  pathManager.setActivePath(index);
+  mapView?.setActivePath(index);
+
+  if (locar && threeCamera) createARPaths(pathManager.paths[activePathIndex]);
+
+  // Zugehörigen Endpunkt-Marker aktivieren (auto-Erzeugung bei Bedarf)
+  const activePath = pathManager.paths[activePathIndex];
+  if (activePath?.wgs84Coords?.length) {
+    const last = activePath.wgs84Coords[activePath.wgs84Coords.length - 1];
+    const lon = last[0], lat = last[1];
+    let markerIndex = findMarkerIndexByLatLon(lat, lon, 1e-5);
+    if (markerIndex === -1) markerIndex = addPathEndpointMarker(activePath);
+    if (markerIndex >= 0) setActive(markerIndex);
+  }
+
+  updatePathSwitcherUI();
+
+  const path = pathManager.paths[index];
+  const distance = path.distance ? `${(path.distance / 1000).toFixed(2)} km` : '';
+  const name = path.properties?.name || `Weg ${index + 1}`;
+  showPopup(`${name} ${distance ? `(${distance})` : ''}`, 2000);
+}
+
+/**
+ * Lädt und zeigt Rettungspunkte im 10 km-Umkreis.
+ */
+async function loadAndShowRescuePoints() {
+  try {
+    if (!currentCoords.latitude || !currentCoords.longitude) {
+      showPopup('GPS-Position noch nicht verfügbar. Bitte auf Signal warten…', 3000);
+      return;
+    }
+
+    if (!pathManager) pathManager = new PathManager({ locar, camera: threeCamera });
+
+    showPopup('Lade Rettungspunkte…', 0);
+    const rescuePoints = await pathManager.loadRescuePointsFromGPX(
+      './rescuepoints/NordrheinWestfalen.gpx',
+      currentCoords,
+      10000
+    );
+    showPopup('', 0, true); // Ladeindikator aus
+
+    if (!rescuePoints.length) return showPopup('Keine Rettungspunkte im 10 km-Umkreis gefunden', 3000);
+
+    rescuePoints.forEach((rp) => {
+      const markerData = {
+        latitude: rp.latitude,
+        longitude: rp.longitude,
+        popupContent: `🚑 ${rp.name}\nEntfernung: ${(rp.distance / 1000).toFixed(1)} km`,
+        markerType: 'rescue',
+        rescuePointId: rp.id
+      };
+
+      const dup = targetCoords.some(coord =>
+        Math.abs(coord.latitude - rp.latitude) < 1e-4 &&
+        Math.abs(coord.longitude - rp.longitude) < 1e-4
+      );
+      if (!dup) {
+        targetCoords.push(markerData);
+        if (locar && threeCamera) addMarker(markerData, targetCoords.length - 1);
+      }
+
+      if (mapView?.map) {
+        mapView.addRescuePointMarker(rp.latitude, rp.longitude, rp.name, rp.distance);
+      }
+    });
+
+    rescuePointsVisible = true;
+    const count = rescuePoints.length;
+    const nearestKm = (rescuePoints[0].distance / 1000).toFixed(1);
+    showPopup(`${count} Rettungspunkte geladen (nächster: ${nearestKm} km)\n© KWF-Rettungspunkte v2.18`, 4000);
+  } catch (error) {
+    console.error('Fehler beim Laden der Rettungspunkte: ', error);
+    showPopup('Fehler beim Laden der Rettungspunkte', 3000);
+  }
+}
+
+/** Blendet alle Rettungspunkte (AR+Karte) aus und bereinigt Ziel-/Marker-Arrays. */
+function hideRescuePoints() {
+  const originalLength = targetCoords.length;
+  const rescueIndices = [];
+
+  targetCoords.forEach((coord, index) => { if (coord.markerType === 'rescue') rescueIndices.push(index); });
+
+  // Ziel-Liste filtern
+  targetCoords = targetCoords.filter(coord => coord.markerType !== 'rescue');
+
+  // Marker (AR) entfernen – in umgekehrter Reihenfolge, um Indizes zu bewahren
+  rescueIndices.reverse().forEach(index => {
+    const marker = markers[index];
+    if (!marker) return;
+    if (marker.markerAnchor?.parentNode) marker.markerAnchor.parentNode.removeChild(marker.markerAnchor);
+    else if (marker.markerObject?.parent) marker.markerObject.parent.remove(marker.markerObject);
+    marker.dispose();
+    markers.splice(index, 1);
+  });
+
+  // Aktiven Index korrigieren
+  if (rescueIndices.includes(indexActive)) {
+    indexActive = targetCoords.length ? 0 : -1;
+    if (indexActive >= 0) setActive(indexActive);
+  } else if (indexActive >= targetCoords.length && targetCoords.length) {
+    indexActive = targetCoords.length - 1;
+    setActive(indexActive);
+  }
+
+  // Kartenmarker aktualisieren
+  if (mapView) {
+    mapView.removeAllTargetMarkers();
+    targetCoords.forEach((coord, index) => {
+      mapView.addTargetMarker(coord.latitude, coord.longitude, coord.popupContent, index === indexActive, index);
+    });
+    mapView.removeRescuePointMarkers();
+  }
+
+  rescuePointsVisible = false;
+}
+
+/* ============================================================================
+ * 7) Initialisierung
+ * ========================================================================== */
+
+/**
+ * Initialisiert die AR-Szene, Kamera/Renderer, LoCAR, MapView und Events.
+ */
+async function init() {
+  sceneEl  = document.querySelector('a-scene');
+  renderer = sceneEl.renderer;
+  cameraEl = document.getElementById('camera');
+
+  // Kamera-Objekt (Three) mit kleinem Retry
+  const setupCamera = async () => {
+    const cam = cameraEl.getObject3D('camera');
+    if (!cam) {
+      await new Promise(r => setTimeout(r, 100));
+      return setupCamera();
+    }
+    return cam;
+  };
+
+  try {
+    threeCamera = await setupCamera();
+
+    // Resize/Orientierung
+    const handleResize = () => {
+      screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
+      const update = () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        threeCamera.aspect = window.innerWidth / window.innerHeight;
+        threeCamera.updateProjectionMatrix();
+      };
+      isIOS ? setTimeout(update, 200) : update();
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
+      }, 100);
+    });
+
+    // LoCAR aus der A-Frame-Komponente holen
+    const comp = cameraEl.components['locar-camera'];
+    if (comp?.locar) {
+      locar     = comp.locar;
+      controls  = comp.deviceOrientationControls;
+      try { locar.startGps(); } catch (err) { handleGpsError(err); }
+    } else {
+      throw new Error('locar-camera fehlt oder locar nicht initialisiert');
+    }
+
+    // Karte anlegen
+    mapView = new MapView({
+      onMarkerClick: (index, title) => {
+        if (index !== indexActive) {
+          setActive(index);
+          showPopup('Ziel aktualisiert!', 2000);
+          updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
+        } else {
+          showPopup(title, 3000);
+        }
+      },
+      onMapInitialized: () => {
+        // existierende Marker/Pfade synchronisieren
+        syncAllMarkersToMap();
+
+        if (pathManager?.paths?.length > 0) {
+          mapView.addPaths(pathManager.paths, activePathIndex);
+        } else if (window.pendingMapPaths?.length > 0) {
+          mapView.addPaths(window.pendingMapPaths, activePathIndex);
+          window.pendingMapPaths = null;
+        }
+      }
+    });
+
+    // Events & Renderloop
+    cameraEl.addEventListener('gpsupdate', onGpsUpdate);
+    renderer.setAnimationLoop(animate);
+  } catch (error) {
+    handleGenericError(error);
+    throw error;
+  }
+}
+
+/** Initialisiert die Pfad-Navigation (PathManager). */
+async function initPathNavigation() {
+  pathManager = new PathManager({ locar, camera: threeCamera });
+}
+
+/* ============================================================================
+ * 8) GPS-Updates & Renderloop
+ * ========================================================================== */
+
+/**
+ * GPS-Update-Handler:
+ * - Aktualisiert Position/Genauigkeit, Kartenposition
+ * - Fügt AR-/UI-Elemente initial hinzu
+ * - Aktiviert sinnvoll den richtigen Zielmarker (Endpunkt aktiver Pfad bevorzugt)
+ * - Erstellt ausstehende AR-Pfade, aktualisiert Pfeil/Marker/Pfade/Kompass
+ */
+function onGpsUpdate(e) {
+  try {
+    const pos = e.detail.position.coords;
+    currentCoords.latitude  = pos.latitude;
+    currentCoords.longitude = pos.longitude;
+    window.currentGPSPosition = { latitude: pos.latitude, longitude: pos.longitude };
+
+    // GPS-Genauigkeit anzeigen
+    const accuracy = pos.accuracy; // in Metern
+    if (gpsAccuracyValue && gpsIndicator) {
+      gpsAccuracyValue.innerText = `~${Math.round(accuracy)}m`;
+      gpsIndicator.classList.remove('gps-indicator--high', 'gps-indicator--medium', 'gps-indicator--low');
+      if (accuracy < 5)      gpsIndicator.classList.add('gps-indicator--high');
+      else if (accuracy < 15)gpsIndicator.classList.add('gps-indicator--medium');
+      else                   gpsIndicator.classList.add('gps-indicator--low');
+    }
+
+    // Kartenposition aktualisieren
+    mapView?.updateUserPosition(pos.latitude, pos.longitude);
+
+    // Initiale AR-/UI-Elemente hinzufügen (einmalig)
+    if (targetCoords.length && markers.length === 0) {
+      addCompass();
+      addArrow();
+      addAllMarkers();
+
+      // Bereits gewählten Index beibehalten, ansonsten Endpunkt aktiven Pfads, sonst 0
+      let desiredIndex =
+        (typeof indexActive === 'number' && indexActive >= 0 && indexActive < targetCoords.length)
+          ? indexActive
+          : -1;
+
+      if (desiredIndex === -1) {
+        const ap = (pathManager && activePathIndex >= 0) ? pathManager.paths[activePathIndex] : null;
+        if (ap?.wgs84Coords?.length) {
+          const last = ap.wgs84Coords[ap.wgs84Coords.length - 1];
+          const lon = last[0], lat = last[1];
+          let idx = findMarkerIndexByLatLon(lat, lon);
+          if (idx === -1) idx = addPathEndpointMarker(ap);
+          if (idx >= 0) desiredIndex = idx;
+        }
+      }
+
+      if (desiredIndex === -1) desiredIndex = 0;
+      setActive(desiredIndex);
+    }
+
+    // Ausstehende AR-Pfade erstellen, wenn AR bereit ist
+    if (window.pendingPaths && locar && threeCamera && !arPaths.length) {
+      const activePath = window.pendingPaths[activePathIndex] || window.pendingPaths[0];
+      if (activePath) createARPaths(activePath);
+      window.pendingPaths = null;
+    }
+
+    // Laufende Updates
+    arrow?.update();
+
+    if (markers.length > 0) {
+      markers.forEach(m => {
+        if (m.markerObject?.parent) m.update();
+      });
+    }
+
+    if (pathManager?.paths?.length > 0) {
+      const nearest = pathManager.findNearestPath({ latitude: pos.latitude, longitude: pos.longitude });
+      if (nearest) {
+        const distance = nearest.distance;
+        const nearestPathIndex = pathManager.paths.findIndex(p => p.id === nearest.path.id);
+        // Automatisch aktivieren, wenn < 100 m entfernt
+        if (distance < 100 && nearestPathIndex !== activePathIndex) setActivePath(nearestPathIndex);
+      }
+    }
+  } catch (err) {
+    handleGpsError(err);
+  }
+}
+
+/**
+ * Render-/Animationsschleife:
+ * - aktualisiert Controls, Pfeil, Marker, aktiven AR-Pfad, Kompass
+ * - rotiert Karte gemäß Geräteausrichtung (inkl. Landscape-Korrektur)
+ * - rendert Szene
+ */
+function animate() {
+  controls?.update();
+  arrow?.update();
+
+  if (markers.length > 0) {
+    markers.forEach(m => { if (m.markerObject?.parent) m.update(); });
+  }
+
+  if (arPaths?.length > 0 && arPaths[0]?.update) {
+    arPaths[0].update();
+  }
+
+  compass?.update();
+
+  // Karte mitdrehen (Ausrichtung)
+  if (mapView?.map && controls?.getCorrectedHeading) {
+    let heading = controls.getCorrectedHeading();
+    if (isIOS) {
+      mapView.rotateToHeading(-heading); // iOS: Vorzeichen invertiert
+    } else {
+      // Android: Korrektur im Landscape-Modus
+      let orientationOffset = 0;
+      if (screenOrientation.type?.includes('landscape') || Math.abs(screenOrientation.angle) === 90) {
+        if (screenOrientation.type === 'landscape-primary' || screenOrientation.angle === 90) {
+          orientationOffset = 90;  // Gerät nach links gedreht
+        } else if (screenOrientation.type === 'landscape-secondary' ||
+                   screenOrientation.angle === 270 || screenOrientation.angle === -90) {
+          orientationOffset = -90; // Gerät nach rechts gedreht
+        }
+      }
+      mapView.rotateToHeading(heading + orientationOffset);
+    }
+  }
+
+  // Distanzanzeige aktualisieren
+  if (targetCoords[indexActive]) {
+    updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
+  }
+
+  // Render
+  if (renderer && threeCamera) renderer.render(sceneEl.object3D, threeCamera);
+}
+
+/* ============================================================================
+ * 9) Buttons / Listener (Start, Pfade laden/wechseln)
+ * ========================================================================== */
+
+/**
+ * Startet den AR-Modus (Berechtigungen prüfen, init, Pfadnavigation starten, UI-Wechsel).
+ */
+btnStart?.addEventListener('click', async () => {
+  try {
+    if (!targetCoords?.length) return showPopup('Bitte mindestens ein Ziel hinzufügen!', 3000);
+    if (!checkBrowserSupport()) return;
+
+    // AR init parallel zu iOS-Orientation-Permission
+    const initProcess = init();
+    let permissionPromise = Promise.resolve();
+
+    if (window.DeviceOrientationEvent?.requestPermission) {
+      permissionPromise = DeviceOrientationEvent.requestPermission()
+        .then(result => {
+          if (result !== 'granted') {
+            throw { name: 'NotAllowedError', message: 'Ohne Zugriff auf Bewegungsdaten kann AR nicht starten.' };
+          }
+        })
+        .catch(err => { handleSensorError(err); throw err; });
+    }
+
+    await Promise.all([initProcess, permissionPromise]);
+
+    await initPathNavigation();
+
+    overlayContainer.style.display = 'none';
+    arContainer.style.display = 'block';
+  } catch (err) {
+    if (err?.name === 'NotAllowedError') handleSensorError(err);
+    else handleGenericError(err);
+  }
+});
+
+/** Lädt mehrere Pfade aus JSON und richtet AR/Karte/Marker ein. */
+btnLoadPaths?.addEventListener('click', async () => {
+  try {
+    if (!pathManager) pathManager = new PathManager();
+
+    showPopup('Lade Wegedaten…', 0);
+    const pathUrls = [
+      './test-paths/route_corrected.json',
+      './test-paths/new_route_alt.json'
+    ];
+    const paths = await pathManager.loadMultiplePathsFromJson(pathUrls);
+    showPopup('', 0, true);
+
+    if (!paths.length) return showPopup('Keine Wege gefunden', 3000);
+
+    // Pfade in der Karte
+    if (mapView) mapView.addPaths(paths);
+    else window.pendingMapPaths = paths;
+
+    // AR-Pfad sofort erstellen, wenn AR bereit
+    if (sceneEl && locar && threeCamera && paths.length > 0) {
+      createARPaths(paths[0]);
+    } else {
+      window.pendingPaths = paths;
+    }
+
+    // Endpunkt-Marker für alle Pfade anlegen
+    paths.forEach(p => addPathEndpointMarker(p));
+
+    // Ersten Pfad aktivieren (setzt zugehörigen Zielmarker aktiv)
+    if (paths.length > 0) {
+      setActivePath(0);
+      updatePathSwitcherUI();
+    }
+
+    showPopup(`${paths.length} Wege geladen`, 2000);
+  } catch (error) {
+    console.error('Fehler beim Laden der Pfade:', error);
+    showPopup('Fehler beim Laden der Pfade', 3000);
+  }
+});
+
+/** Aktualisiert die Path-Switcher-UI (Sichtbarkeit, Beschriftung, Button-Zustände). */
 function updatePathSwitcherUI() {
   const pathSwitcher = document.getElementById('pathSwitcher');
-  const pathInfo = document.getElementById('pathInfo');
-  
-  if (!pathManager || !pathManager.paths) {
+  const pathInfo     = document.getElementById('pathInfo');
+  if (!pathSwitcher || !pathInfo) return;
+
+  if (!pathManager?.paths?.length || pathManager.paths.length <= 1) {
     pathSwitcher.style.display = 'none';
     return;
   }
-  
-  const pathCount = pathManager.paths.length;
-  
-  if (pathCount <= 1) {
-    pathSwitcher.style.display = 'none';
-    return;
-  }
-  
-  // UI anzeigen
+
   pathSwitcher.style.display = 'flex';
-  pathInfo.textContent = `Weg ${activePathIndex + 1} von ${pathCount}`;
-  
-  // Buttons aktivieren/deaktivieren
-  const btnPrev = document.getElementById('btnPrevPath');
-  const btnNext = document.getElementById('btnNextPath');
-  
-  btnPrev.disabled = activePathIndex <= 0;
-  btnNext.disabled = activePathIndex >= pathCount - 1;
+  pathInfo.textContent = `Weg ${activePathIndex + 1} von ${pathManager.paths.length}`;
+
+  btnPrevPath && (btnPrevPath.disabled = activePathIndex <= 0);
+  btnNextPath && (btnNextPath.disabled = activePathIndex >= pathManager.paths.length - 1);
 }
 
-/**
- * Wechselt zum vorherigen Pfad
- */
+/** Wechselt zum vorherigen Pfad. */
 function switchToPreviousPath() {
   if (activePathIndex > 0) {
     setActivePath(activePathIndex - 1);
     updatePathSwitcherUI();
-    
-    // Endpunkt-Marker für neuen Pfad hinzufügen und aktivieren
     switchToPathEndpoint(pathManager.paths[activePathIndex]);
   }
 }
 
-/**
- * Wechselt zum nächsten Pfad
- */
+/** Wechselt zum nächsten Pfad. */
 function switchToNextPath() {
   if (pathManager && activePathIndex < pathManager.paths.length - 1) {
     setActivePath(activePathIndex + 1);
     updatePathSwitcherUI();
-    
-    // Endpunkt-Marker für neuen Pfad hinzufügen und aktivieren
     switchToPathEndpoint(pathManager.paths[activePathIndex]);
   }
 }
 
 /**
- * Wechselt zum Endpunkt des angegebenen Pfads
- * @param {Object} path - Der Pfad, dessen Endpunkt aktiviert werden soll
+ * Aktiviert den Zielmarker am Endpunkt des angegebenen Pfades.
+ * @param {{wgs84Coords:number[][]}} path
  */
 function switchToPathEndpoint(path) {
-  if (!path || !path.wgs84Coords || path.wgs84Coords.length === 0) {
-    console.warn('Kein gültiger Pfad für Endpunkt-Wechsel');
-    return;
-  }
-  
-  // Letzten Punkt des Pfades ermitteln
-  const lastCoordinate = path.wgs84Coords[path.wgs84Coords.length - 1];
-  const longitude = lastCoordinate[0];
-  const latitude = lastCoordinate[1];
-  
-  // Suchen, ob bereits ein Marker an dieser Position existiert
-  const existingMarkerIndex = targetCoords.findIndex(marker => 
-    Math.abs(marker.latitude - latitude) < 0.00001 && 
-    Math.abs(marker.longitude - longitude) < 0.00001
-  );
-  
-  if (existingMarkerIndex !== -1) {
-    // Bestehenden Marker aktivieren
-    setActive(existingMarkerIndex);
-    console.log(`Bestehender Marker am Pfad-Ende aktiviert: Index ${existingMarkerIndex}`);
+  if (!path?.wgs84Coords?.length) return;
+
+  const last = path.wgs84Coords[path.wgs84Coords.length - 1];
+  const lon = last[0], lat = last[1];
+
+  let idx = findMarkerIndexByLatLon(lat, lon, 1e-5);
+  if (idx !== -1) {
+    setActive(idx);
   } else {
-    // Neuen Marker hinzufügen
-    addPathEndpointMarker(path);
-    // Den neu hinzugefügten Marker (letzter im Array) als aktiv setzen
-    if (targetCoords.length > 0) {
-      setActive(targetCoords.length - 1);
-    }
+    const created = addPathEndpointMarker(path);
+    if (created >= 0) setActive(created);
   }
 }
 
+// Path-Switcher Buttons
+btnPrevPath?.addEventListener('click', switchToPreviousPath);
+btnNextPath?.addEventListener('click', switchToNextPath);
 
-// Event Listener für Path Switcher Buttons
-if (document.getElementById('btnPrevPath')) {
-  document.getElementById('btnPrevPath').addEventListener('click', switchToPreviousPath);
-}
-
-if (document.getElementById('btnNextPath')) {
-  document.getElementById('btnNextPath').addEventListener('click', switchToNextPath);
-}
+// Rettungspunkte Toggle
+toggleRescuePoints?.addEventListener('change', async (e) => {
+  if (e.target.checked) await loadAndShowRescuePoints();
+  else hideRescuePoints();
+});
