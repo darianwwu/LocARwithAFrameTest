@@ -1,0 +1,343 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "ETRS89 / UTM zone 32N",
+    "properties": {
+      "name": "EPSG:25832"
+    }
+  },
+  "duration": 420.75,
+  "length": 2850.0,
+  "name": "Campus Route",
+  "description": "Neue Testroute beginnend bei Koordinaten 51.938242, 7.593213",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            406525.342,
+            5753845.678
+          ],
+          [
+            406545.123,
+            5753865.234
+          ],
+          [
+            406568.789,
+            5753885.012
+          ],
+          [
+            406592.456,
+            5753905.789
+          ],
+          [
+            406615.234,
+            5753925.567
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 1: Start Campus",
+        "description": "Vom Haupteingang zur ersten Kreuzung"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            406615.234,
+            5753925.567
+          ],
+          [
+            406635.678,
+            5753945.123
+          ],
+          [
+            406655.432,
+            5753965.789
+          ],
+          [
+            406675.987,
+            5753985.432
+          ],
+          [
+            406695.234,
+            5754005.678
+          ],
+          [
+            406715.123,
+            5754025.234
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 2: Hauptstraße Nord",
+        "description": "Entlang der Hauptstraße nach Norden"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            406715.123,
+            5754025.234
+          ],
+          [
+            406745.789,
+            5754035.567
+          ],
+          [
+            406775.432,
+            5754045.123
+          ],
+          [
+            406805.678,
+            5754055.789
+          ],
+          [
+            406835.234,
+            5754065.432
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 3: Kurve Richtung Osten",
+        "description": "Rechtskurve in östliche Richtung"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            406835.234,
+            5754065.432
+          ],
+          [
+            406865.789,
+            5754075.123
+          ],
+          [
+            406895.432,
+            5754085.789
+          ],
+          [
+            406925.678,
+            5754095.432
+          ],
+          [
+            406955.234,
+            5754105.678
+          ],
+          [
+            406985.789,
+            5754115.234
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 4: Oststraße",
+        "description": "Geradeaus entlang der Oststraße"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            406985.789,
+            5754115.234
+          ],
+          [
+            407005.432,
+            5754145.678
+          ],
+          [
+            407025.678,
+            5754175.234
+          ],
+          [
+            407045.234,
+            5754205.789
+          ],
+          [
+            407065.789,
+            5754235.432
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 5: Nordkurve",
+        "description": "Linkskurve wieder nach Norden"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407065.789,
+            5754235.432
+          ],
+          [
+            407075.234,
+            5754265.678
+          ],
+          [
+            407085.678,
+            5754295.234
+          ],
+          [
+            407095.432,
+            5754325.789
+          ],
+          [
+            407105.789,
+            5754355.432
+          ],
+          [
+            407115.234,
+            5754385.678
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 6: Parkstraße",
+        "description": "Entlang des Parks nach Norden"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407115.234,
+            5754385.678
+          ],
+          [
+            407135.789,
+            5754405.234
+          ],
+          [
+            407155.432,
+            5754425.789
+          ],
+          [
+            407175.678,
+            5754445.432
+          ],
+          [
+            407195.234,
+            5754465.678
+          ],
+          [
+            407215.789,
+            5754485.234
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 7: Diagonale",
+        "description": "Diagonaler Verlauf zum Zielbereich"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "crs": {
+          "type": "name",
+          "properties": {
+            "name": "EPSG:25832"
+          }
+        },
+        "coordinates": [
+          [
+            407215.789,
+            5754485.234
+          ],
+          [
+            407235.432,
+            5754505.678
+          ],
+          [
+            407255.678,
+            5754525.234
+          ],
+          [
+            407275.234,
+            5754545.789
+          ],
+          [
+            407295.789,
+            5754565.432
+          ],
+          [
+            407315.432,
+            5754585.678
+          ],
+          [
+            407335.678,
+            5754605.234
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Segment 8: Zielgerade",
+        "description": "Finale Gerade zum Zielpunkt"
+      }
+    }
+  ]
+}
