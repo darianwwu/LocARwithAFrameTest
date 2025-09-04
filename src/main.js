@@ -22,6 +22,7 @@ import 'aframe-look-at-component';
 
 import { CompassGUI, addCompassToScene } from './compassGUI.js';
 import { ARNavigationArrow, addArrowToScene } from './arNavigationArrow.js';
+import { ARPathNavigationArrow, addPathArrowToScene } from './pathNavigationArrow.js';
 import { TargetMarker } from './targetMarker.js';
 import { updateDistance } from './distanceOverlay.js';
 import { MapView } from './mapView.js';
@@ -99,6 +100,8 @@ let threeCamera;
 let compass;
 /** @type {import('./arNavigationArrow').ARNavigationArrow} */
 let arrow;
+/** @type {import('./pathNavigationArrow').ARPathNavigationArrow} */
+let pathArrow;
 
 /** @type {MapView} */
 let mapView;
@@ -132,6 +135,7 @@ let screenOrientation = { type: screen.orientation?.type, angle: screen.orientat
 // Pfade/Navigation
 /** @type {PathManager} */
 let pathManager;
+window.pathManager = pathManager; // Globale Referenz für pathNavigationArrow
 let arPaths = [];
 let activePathIndex = -1;
 
@@ -391,6 +395,88 @@ function addArrow() {
     getIndexActiveMarker: () => indexActive
   });
   window.arrow = arrow; // für Farbwähler etc.
+  
+  // Callback für nach dem GLTF-Laden hinzufügen
+  arrow.onArrowReady = () => {
+    console.log('[DEBUG] Normal Arrow GLTF geladen, aktualisiere Sichtbarkeit');
+    updateArrowVisibility();
+  };
+}
+
+/**
+ * Fügt den Pfad-Navigationspfeil hinzu.
+ * Dieser Pfeil zeigt auf den nächsten Punkt des aktiven Pfads und ist oran44444444ge.
+ */
+function addPathArrow() {
+  console.log('[DEBUG] addPathArrow() aufgerufen');
+  pathArrow = addPathArrowToScene({
+    locar,
+    camera: threeCamera,
+    deviceOrientationControl: controls,
+    getPathManager: () => pathManager, // Verwende Getter-Funktion statt direkter Referenz
+    currentCoords,
+    isIOS,
+    getScreenOrientation: () => screenOrientation,
+    getActivePathIndex: () => activePathIndex
+  });
+  window.pathArrow = pathArrow; // für debugging etc.
+  console.log('[DEBUG] pathArrow erstellt:', pathArrow);
+  
+  // Callback für nach dem GLTF-Laden hinzufügen
+  pathArrow.onArrowReady = () => {
+    console.log('[DEBUG] PathArrow GLTF geladen, aktualisiere Sichtbarkeit');
+    updateArrowVisibility();
+  };
+}
+
+/**
+ * Stellt sicher, dass alle AR-Elemente (Compass, Pfeile) erstellt sind, wenn AR bereit ist.
+ * @param {boolean} updateVisibility - Ob die Pfeil-Sichtbarkeit sofort aktualisiert werden soll
+ */
+function ensureARElementsCreated(updateVisibility = true) {
+  if (!locar || !threeCamera) return;
+  
+  if (!compass) {
+    console.log('[DEBUG] Erstelle Compass');
+    addCompass();
+  }
+  
+  if (!arrow) {
+    console.log('[DEBUG] Erstelle normalen Arrow');
+    addArrow();
+  }
+  
+  if (!pathArrow) {
+    console.log('[DEBUG] Erstelle PathArrow');
+    addPathArrow();
+  }
+  
+  // Pfeil-Sichtbarkeit nur aktualisieren, wenn gewünscht
+  if (updateVisibility) {
+    updateArrowVisibility();
+  }
+}
+function updateArrowVisibility() {
+  const isPathActive = activePathIndex >= 0 && pathManager?.paths?.length > activePathIndex;
+  console.log('[DEBUG] updateArrowVisibility - isPathActive:', isPathActive, 'activePathIndex:', activePathIndex);
+  console.log('[DEBUG] pathManager:', pathManager);
+  console.log('[DEBUG] pathManager?.paths?.length:', pathManager?.paths?.length);
+  console.log('[DEBUG] arrow?.arrowObject:', !!arrow?.arrowObject);
+  console.log('[DEBUG] pathArrow?.arrowObject:', !!pathArrow?.arrowObject);
+  
+  if (arrow?.arrowObject) {
+    arrow.arrowObject.visible = !isPathActive;
+    console.log('[DEBUG] Normal arrow visible:', !isPathActive);
+  } else {
+    console.log('[DEBUG] Normal arrow object not found!');
+  }
+  
+  if (pathArrow?.arrowObject) {
+    pathArrow.arrowObject.visible = isPathActive;
+    console.log('[DEBUG] Path arrow visible:', isPathActive);
+  } else {
+    console.log('[DEBUG] Path arrow object not found!');
+  }
 }
 
 /**
@@ -491,24 +577,53 @@ function setActive(i) {
 /**
  * Synchronisiert alle Zielmarker mit der Karte (löscht/fügt neu hinzu).
  */
+/**
+ * Synchronisiert alle Marker zur Karte - optimiert für batch operations.
+ */
 function syncAllMarkersToMap() {
   if (!mapView?.map) return;
 
+  // Batch-Operation: erst alle entfernen, dann alle hinzufügen
   mapView.removeAllTargetMarkers();
-  targetCoords.forEach((coords, index) => {
-    // Rettungspunkte werden separat über addRescuePointMarker hinzugefügt
-    if (coords.markerType !== 'rescue') {
-      mapView.addTargetMarker(
-        coords.latitude,
-        coords.longitude,
-        coords.popupContent || `Ziel ${index + 1}`,
-        index === indexActive,
-        index
-      );
+  
+  // Marker in kleineren Batches hinzufügen (verhindert UI-Blockierung)
+  const batchSize = 10;
+  let index = 0;
+  
+  const processBatch = () => {
+    const endIndex = Math.min(index + batchSize, targetCoords.length);
+    
+    for (let i = index; i < endIndex; i++) {
+      const coords = targetCoords[i];
+      // Rettungspunkte werden separat über addRescuePointMarker hinzugefügt
+      if (coords.markerType !== 'rescue') {
+        mapView.addTargetMarker(
+          coords.latitude,
+          coords.longitude,
+          coords.popupContent || `Ziel ${i + 1}`,
+          i === indexActive,
+          i
+        );
+      }
     }
-  });
-
-  if (currentCoords.latitude && currentCoords.longitude) {
+    
+    index = endIndex;
+    
+    // Nächsten Batch verarbeiten, falls noch Marker vorhanden
+    if (index < targetCoords.length) {
+      requestAnimationFrame(processBatch);
+    } else {
+      // Nach allen Markern: User-Position aktualisieren
+      if (currentCoords.latitude && currentCoords.longitude) {
+        mapView.updateUserPosition(currentCoords.latitude, currentCoords.longitude);
+      }
+    }
+  };
+  
+  // Erste Batch starten
+  if (targetCoords.length > 0) {
+    processBatch();
+  } else if (currentCoords.latitude && currentCoords.longitude) {
     mapView.updateUserPosition(currentCoords.latitude, currentCoords.longitude);
   }
 }
@@ -554,6 +669,8 @@ function setActivePath(index) {
   if (!pathManager || index < 0 || index >= pathManager.paths.length) {
     activePathIndex = -1;
     removeARPaths();
+    // Pfeil-Sichtbarkeit aktualisieren
+    updateArrowVisibility();
     return;
   }
 
@@ -575,6 +692,9 @@ function setActivePath(index) {
 
   updatePathSwitcherUI();
 
+  // Pfeil-Sichtbarkeit aktualisieren
+  updateArrowVisibility();
+
   const path = pathManager.paths[index];
   const distance = path.distance ? `${(path.distance / 1000).toFixed(2)} km` : '';
   const name = path.properties?.name || `Weg ${index + 1}`;
@@ -591,7 +711,10 @@ async function loadAndShowRescuePoints() {
       return;
     }
 
-    if (!pathManager) pathManager = new PathManager({ locar, camera: threeCamera });
+    if (!pathManager) {
+    pathManager = new PathManager({ locar, camera: threeCamera });
+    window.pathManager = pathManager; // Globale Referenz setzen
+  }
 
     showPopup('Lade Rettungspunkte…', 0);
     const rescuePoints = await pathManager.loadRescuePointsFromGPX(
@@ -683,6 +806,7 @@ function hideRescuePoints() {
 
 /**
  * Initialisiert die AR-Szene, Kamera/Renderer, LoCAR, MapView und Events.
+ * Optimiert für schnelle UI-Responsivität nach Kamera-Start.
  */
 async function init() {
   sceneEl  = document.querySelector('a-scene');
@@ -700,15 +824,15 @@ async function init() {
   };
 
   try {
-    threeCamera = await setupCamera();
-
-    // Resize/Orientierung
+    // Setup Event Handlers früh (lightweight)
     const handleResize = () => {
       screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
       const update = () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
-        threeCamera.aspect = window.innerWidth / window.innerHeight;
-        threeCamera.updateProjectionMatrix();
+        if (threeCamera) {
+          threeCamera.aspect = window.innerWidth / window.innerHeight;
+          threeCamera.updateProjectionMatrix();
+        }
       };
       isIOS ? setTimeout(update, 200) : update();
     };
@@ -718,6 +842,9 @@ async function init() {
         screenOrientation = { type: screen.orientation?.type, angle: screen.orientation?.angle };
       }, 100);
     });
+
+    // Kamera setup
+    threeCamera = await setupCamera();
 
     // LoCAR aus der A-Frame-Komponente holen
     const comp = cameraEl.components['locar-camera'];
@@ -729,7 +856,28 @@ async function init() {
       throw new Error('locar-camera fehlt oder locar nicht initialisiert');
     }
 
-    // Karte anlegen
+    // GPS Event registrieren (kritisch für AR-Updates)
+    cameraEl.addEventListener('gpsupdate', onGpsUpdate);
+    
+    // Renderloop starten - UI ist ab hier responsive!
+    renderer.setAnimationLoop(animate);
+
+    // Karte asynchron initialisieren (non-blocking für UI)
+    setTimeout(() => {
+      initMapViewAsync();
+    }, 10); // Minimal delay, damit UI-Thread freigegeben wird
+
+  } catch (error) {
+    handleGenericError(error);
+    throw error;
+  }
+}
+
+/**
+ * Asynchrone Karten-Initialisierung - blockiert nicht die UI-Updates.
+ */
+function initMapViewAsync() {
+  try {
     mapView = new MapView({
       onMarkerClick: (index, title) => {
         if (index !== indexActive) {
@@ -741,30 +889,34 @@ async function init() {
         }
       },
       onMapInitialized: () => {
-        // existierende Marker/Pfade synchronisieren
-        syncAllMarkersToMap();
+        // Marker/Pfade in nächstem Frame synchronisieren (non-blocking)
+        requestAnimationFrame(() => {
+          syncAllMarkersToMap();
 
-        if (pathManager?.paths?.length > 0) {
-          mapView.addPaths(pathManager.paths, activePathIndex);
-        } else if (window.pendingMapPaths?.length > 0) {
-          mapView.addPaths(window.pendingMapPaths, activePathIndex);
-          window.pendingMapPaths = null;
-        }
+          if (pathManager?.paths?.length > 0) {
+            mapView.addPaths(pathManager.paths, activePathIndex);
+          } else if (window.pendingMapPaths?.length > 0) {
+            mapView.addPaths(window.pendingMapPaths, activePathIndex);
+            window.pendingMapPaths = null;
+          }
+        });
       }
     });
-
-    // Events & Renderloop
-    cameraEl.addEventListener('gpsupdate', onGpsUpdate);
-    renderer.setAnimationLoop(animate);
   } catch (error) {
+    console.error('MapView Initialisierung fehlgeschlagen:', error);
     handleGenericError(error);
-    throw error;
   }
 }
 
 /** Initialisiert die Pfad-Navigation (PathManager). */
 async function initPathNavigation() {
-  pathManager = new PathManager({ locar, camera: threeCamera });
+  if (!pathManager) {
+    pathManager = new PathManager({ locar, camera: threeCamera });
+    window.pathManager = pathManager; // Globale Referenz setzen
+    console.log('[DEBUG] Neuen PathManager in initPathNavigation erstellt');
+  } else {
+    console.log('[DEBUG] PathManager bereits vorhanden, überspringe Erstellung');
+  }
 }
 
 /* ============================================================================
@@ -800,8 +952,7 @@ function onGpsUpdate(e) {
 
     // Initiale AR-/UI-Elemente hinzufügen (einmalig)
     if (targetCoords.length && markers.length === 0) {
-      addCompass();
-      addArrow();
+      ensureARElementsCreated(); // Stelle sicher, dass alle AR-Elemente existieren
       addAllMarkers();
 
       // Bereits gewählten Index beibehalten, ansonsten Endpunkt aktiven Pfads, sonst 0
@@ -827,6 +978,7 @@ function onGpsUpdate(e) {
 
     // Ausstehende AR-Pfade erstellen, wenn AR bereit ist
     if (window.pendingPaths && locar && threeCamera && !arPaths.length) {
+      ensureARElementsCreated(false); // Pfeile erstellen, aber Sichtbarkeit noch nicht setzen
       const activePath = window.pendingPaths[activePathIndex] || window.pendingPaths[0];
       if (activePath) createARPaths(activePath);
       window.pendingPaths = null;
@@ -834,6 +986,7 @@ function onGpsUpdate(e) {
 
     // Laufende Updates
     arrow?.update();
+    pathArrow?.update();
 
     if (markers.length > 0) {
       markers.forEach(m => {
@@ -846,8 +999,9 @@ function onGpsUpdate(e) {
       if (nearest) {
         const distance = nearest.distance;
         const nearestPathIndex = pathManager.paths.findIndex(p => p.id === nearest.path.id);
-        // Automatisch aktivieren, wenn < 100 m entfernt
-        if (distance < 100 && nearestPathIndex !== activePathIndex) setActivePath(nearestPathIndex);
+        // DEAKTIVIERT: Automatische Pfadaktivierung (überschreibt Nutzerauswahl)
+        // if (distance < 100 && nearestPathIndex !== activePathIndex) setActivePath(nearestPathIndex);
+        console.log(`[DEBUG] Nächster Pfad: ${nearest.path.name} (${distance.toFixed(0)}m), aktiv: ${pathManager.paths[activePathIndex]?.name}`);
       }
     }
   } catch (err) {
@@ -861,10 +1015,17 @@ function onGpsUpdate(e) {
  * - rotiert Karte gemäß Geräteausrichtung (inkl. Landscape-Korrektur)
  * - rendert Szene
  */
+let frameCount = 0; // Für Throttling weniger kritischer Updates
+
 function animate() {
+  frameCount++;
+  
+  // Kritische Updates (jedes Frame)
   controls?.update();
   arrow?.update();
+  pathArrow?.update();
 
+  // AR-Objekte Updates (jedes Frame)
   if (markers.length > 0) {
     markers.forEach(m => { if (m.markerObject?.parent) m.update(); });
   }
@@ -875,32 +1036,35 @@ function animate() {
 
   compass?.update();
 
-  // Karte mitdrehen (Ausrichtung)
-  if (mapView?.map && controls?.getCorrectedHeading) {
-    let heading = controls.getCorrectedHeading();
-    if (isIOS) {
-      mapView.rotateToHeading(-heading); // iOS: Vorzeichen invertiert
-    } else {
-      // Android: Korrektur im Landscape-Modus
-      let orientationOffset = 0;
-      if (screenOrientation.type?.includes('landscape') || Math.abs(screenOrientation.angle) === 90) {
-        if (screenOrientation.type === 'landscape-primary' || screenOrientation.angle === 90) {
-          orientationOffset = 90;  // Gerät nach links gedreht
-        } else if (screenOrientation.type === 'landscape-secondary' ||
-                   screenOrientation.angle === 270 || screenOrientation.angle === -90) {
-          orientationOffset = -90; // Gerät nach rechts gedreht
+  // Weniger kritische Updates (alle 3 Frames = ~20Hz bei 60 FPS)
+  if (frameCount % 3 === 0) {
+    // Karte mitdrehen (Ausrichtung)
+    if (mapView?.map && controls?.getCorrectedHeading) {
+      let heading = controls.getCorrectedHeading();
+      if (isIOS) {
+        mapView.rotateToHeading(-heading); // iOS: Vorzeichen invertiert
+      } else {
+        // Android: Korrektur im Landscape-Modus
+        let orientationOffset = 0;
+        if (screenOrientation.type?.includes('landscape') || Math.abs(screenOrientation.angle) === 90) {
+          if (screenOrientation.type === 'landscape-primary' || screenOrientation.angle === 90) {
+            orientationOffset = 90;  // Gerät nach links gedreht
+          } else if (screenOrientation.type === 'landscape-secondary' ||
+                     screenOrientation.angle === 270 || screenOrientation.angle === -90) {
+            orientationOffset = -90; // Gerät nach rechts gedreht
+          }
         }
+        mapView.rotateToHeading(heading + orientationOffset);
       }
-      mapView.rotateToHeading(heading + orientationOffset);
+    }
+
+    // Distanzanzeige aktualisieren
+    if (targetCoords[indexActive]) {
+      updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
     }
   }
 
-  // Distanzanzeige aktualisieren
-  if (targetCoords[indexActive]) {
-    updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
-  }
-
-  // Render
+  // Render (jedes Frame - kritisch für flüssige AR)
   if (renderer && threeCamera) renderer.render(sceneEl.object3D, threeCamera);
 }
 
@@ -945,7 +1109,10 @@ btnStart?.addEventListener('click', async () => {
 /** Lädt mehrere Pfade aus JSON und richtet AR/Karte/Marker ein. */
 btnLoadPaths?.addEventListener('click', async () => {
   try {
-    if (!pathManager) pathManager = new PathManager();
+    if (!pathManager) {
+      pathManager = new PathManager();
+      window.pathManager = pathManager; // Globale Referenz setzen
+    }
 
     showPopup('Lade Wegedaten…', 0);
     const pathUrls = [
@@ -961,9 +1128,9 @@ btnLoadPaths?.addEventListener('click', async () => {
     if (mapView) mapView.addPaths(paths);
     else window.pendingMapPaths = paths;
 
-    // AR-Pfad sofort erstellen, wenn AR bereit
+    // AR-Pfeile vorbereiten, aber noch keine Pfade erstellen
     if (sceneEl && locar && threeCamera && paths.length > 0) {
-      createARPaths(paths[0]);
+      ensureARElementsCreated(false); // Pfeile erstellen, aber Sichtbarkeit noch nicht setzen
     } else {
       window.pendingPaths = paths;
     }
@@ -971,7 +1138,7 @@ btnLoadPaths?.addEventListener('click', async () => {
     // Endpunkt-Marker für alle Pfade anlegen
     paths.forEach(p => addPathEndpointMarker(p));
 
-    // Ersten Pfad aktivieren (setzt zugehörigen Zielmarker aktiv)
+    // Ersten Pfad aktivieren (setzt zugehörigen Zielmarker aktiv und erstellt AR-Pfad)
     if (paths.length > 0) {
       setActivePath(0);
       updatePathSwitcherUI();

@@ -14,10 +14,10 @@
     "locar-aframe": "^0.1.1",
     "proj4": "^2.19.10",
     "rollup": "^4.37.0",
-    "three": "^0.175.0"
+    "three": "^0.180.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-basic-ssl": "^1.2.0",
-    "vite": "^6.0.11"
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "vite": "^7.1.4"
   }
 }

@@ -44,6 +44,11 @@ export class ARNavigationArrow {
       this.arrowObject = gltf.scene;
       this.setupArrow();
       onLoadCallback();
+      
+      // Benachrichtige main.js, dass das Arrow-Object bereit ist
+      if (this.onArrowReady) {
+        this.onArrowReady();
+      }
     });
   }
 
