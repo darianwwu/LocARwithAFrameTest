@@ -6,6 +6,7 @@
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
   />
+  />
   <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
   <link rel="stylesheet" href="/public/stylesheets/style.css" />
@@ -133,6 +134,15 @@
         </svg>
       </button>
       <div id="mapView" class="map-view">
+        <button id="mapFullscreenToggle" class="map-fullscreen-toggle">
+          <svg class="fullscreen-icon expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <svg class="fullscreen-icon close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <div id="map" class="map-display"></div>
       </div>
     </div>

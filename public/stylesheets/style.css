@@ -951,12 +951,84 @@ input:focus + .toggle-slider {
   visibility: hidden;
   transform: translateY(20px) scale(0.9);
   transition: all var(--transition-base);
+  position: relative;
 }
 
 .map-view--visible {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
+}
+
+.map-view--fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999;
+  border-radius: 0;
+  transform: none !important;
+  opacity: 1;
+  visibility: visible;
+}
+
+.map-fullscreen-toggle {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
+  color: var(--color-surface);
+  z-index: 10;
+  opacity: 1;
+  visibility: visible;
+}
+
+.map-view:not(.map-view--visible) .map-fullscreen-toggle {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.map-fullscreen-toggle:hover {
+  background: rgba(0, 0, 0, 0.85);
+  transform: scale(1.05);
+}
+
+.map-fullscreen-toggle:active {
+  transform: scale(0.95);
+}
+
+.fullscreen-icon {
+  width: 16px;
+  height: 16px;
+  stroke: var(--color-surface);
+  transition: all var(--transition-base);
+}
+
+.map-view--fullscreen .expand-icon {
+  display: none;
+}
+
+.map-view--fullscreen .close-icon {
+  display: block !important;
+}
+
+/* Settings Menu im Vollbildmodus ausblenden */
+.map-view--fullscreen ~ .settings-button,
+.map-view--fullscreen ~ .settings-menu {
+  display: none !important;
 }
 
 .map-display {
@@ -1006,6 +1078,18 @@ input:focus + .toggle-slider {
   .map-view {
     width: 200px;
     height: 150px;
+  }
+  
+  .map-fullscreen-toggle {
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+  }
+  
+  .fullscreen-icon {
+    width: 14px;
+    height: 14px;
   }
 }
 

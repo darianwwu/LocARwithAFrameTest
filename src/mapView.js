@@ -12,6 +12,7 @@ export class MapView {
     this.rescuePointMarkers = []; // Array für Rettungspunkt-Marker
     this.vectorSource = null;
     this.isVisible = false;
+    this.isFullscreen = false; // Neues Flag für Fullscreen-Modus
     this.currentPosition = null;
     this.userInteractedWithMap = false; // Flag für Benutzerinteraktion
     this._coneIconCache = {};
@@ -41,6 +42,9 @@ export class MapView {
     this.mapContainer = document.getElementById('mapView');
     this.mapToggle = document.getElementById('mapToggle');
     this.mapDisplay = document.getElementById('map');
+    this.mapFullscreenToggle = document.getElementById('mapFullscreenToggle');
+    this.expandIcon = this.mapFullscreenToggle?.querySelector('.expand-icon');
+    this.closeIcon = this.mapFullscreenToggle?.querySelector('.close-icon');
     
     this.initializeEvents();
   }
@@ -61,6 +65,12 @@ export class MapView {
     // Toggle Button Event
     this.mapToggle.addEventListener('click', () => {
       this.toggleMap();
+    });
+
+    // Fullscreen Toggle Button Event
+    this.mapFullscreenToggle?.addEventListener('click', (e) => {
+      e.stopPropagation(); // Verhindert Bubble-up zum mapToggle
+      this.toggleFullscreen();
     });
 
     // Karte erst bei erstem Öffnen initialisieren
@@ -160,6 +170,18 @@ export class MapView {
     
     if (this.isVisible) {
       this.mapContainer.classList.add('map-view--visible');
+      
+      // Bei normaler Kartenansicht (nicht Vollbild): immer auf Benutzerposition zentrieren
+      if (!this.isFullscreen && this.currentPosition) {
+        setTimeout(() => {
+          if (this.map) {
+            this.map.getView().setCenter(ol.proj.fromLonLat(this.currentPosition));
+            this.map.getView().setZoom(15);
+            this.map.getView().setRotation(0); // Karte nach Norden ausrichten
+          }
+        }, 100);
+      }
+      
       // Map resize nach Animation
       setTimeout(() => {
         if (this.map) {
@@ -168,6 +190,16 @@ export class MapView {
       }, 300);
     } else {
       this.mapContainer.classList.remove('map-view--visible');
+      
+      // Vollbildmodus beim Schließen der Karte deaktivieren
+      if (this.isFullscreen) {
+        this.isFullscreen = false;
+        this.mapContainer.classList.remove('map-view--fullscreen');
+        // Icons zurücksetzen
+        if (this.expandIcon) this.expandIcon.style.display = 'block';
+        if (this.closeIcon) this.closeIcon.style.display = 'none';
+      }
+      
       // Beim Schließen: Flag zurücksetzen und Karte auf Standard-Ausschnitt zurücksetzen
       this.userInteractedWithMap = false;
       
@@ -182,6 +214,57 @@ export class MapView {
           this.map.getView().setZoom(15);
         }
       }
+    }
+  }
+
+  /**
+   * Schaltet den Vollbildmodus der Karte um
+   */
+  toggleFullscreen() {
+    if (this.isFullscreen) {
+      // Vollbildmodus deaktivieren und Karte komplett schließen
+      this.isFullscreen = false;
+      this.isVisible = false;
+      this.mapContainer.classList.remove('map-view--fullscreen');
+      this.mapContainer.classList.remove('map-view--visible');
+      
+      // Icons zurücksetzen
+      if (this.expandIcon) this.expandIcon.style.display = 'block';
+      if (this.closeIcon) this.closeIcon.style.display = 'none';
+      
+      // Map-Interaktions-Flag zurücksetzen
+      this.userInteractedWithMap = false;
+      
+      // Karte auf Standard-Ausschnitt zurücksetzen
+      if (this.map) {
+        if (this.targetMarkers.length > 0 || this.userMarker) {
+          this.fitMapToMarkers();
+        } else {
+          this.map.getView().setCenter(ol.proj.fromLonLat([7.6, 51.9]));
+          this.map.getView().setZoom(15);
+        }
+      }
+    } else {
+      // Vollbildmodus aktivieren
+      this.isFullscreen = true;
+      this.mapContainer.classList.add('map-view--fullscreen');
+      
+      // Sicherstellen, dass die Karte sichtbar ist
+      if (!this.isVisible) {
+        this.isVisible = true;
+        this.mapContainer.classList.add('map-view--visible');
+      }
+      
+      // Icons umschalten
+      if (this.expandIcon) this.expandIcon.style.display = 'none';
+      if (this.closeIcon) this.closeIcon.style.display = 'block';
+      
+      // Map resize nach Animation
+      setTimeout(() => {
+        if (this.map) {
+          this.map.updateSize();
+        }
+      }, 300);
     }
   }
 
