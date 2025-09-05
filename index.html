@@ -9,8 +9,8 @@
   <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.5.0/ol.css">
   <title>AR Navigation Demo</title>
-  <script type="module" crossorigin src="./assets/index-D4pSZYR_.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BuwH9jfg.css">
+  <script type="module" crossorigin src="./assets/index-DyQdesSG.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DwoNZ7Qx.css">
 </head>
 <body>
   <!-- Splash Screen -->
@@ -134,6 +134,14 @@
         </svg>
       </button>
       <div id="mapView" class="map-view">
+        <button id="mapFullscreenToggle" class="map-fullscreen-toggle">
+          <svg class="fullscreen-icon expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <svg class="fullscreen-icon collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 8h3a2 2 0 0 1 2 2v3"/>
+          </svg>
+        </button>
         <div id="map" class="map-display"></div>
       </div>
     </div>
