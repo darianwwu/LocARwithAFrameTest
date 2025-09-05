@@ -1021,8 +1021,14 @@ input:focus + .toggle-slider {
   display: none;
 }
 
-.map-view--fullscreen .collapse-icon {
+.map-view--fullscreen .close-icon {
   display: block !important;
+}
+
+/* Settings Menu im Vollbildmodus ausblenden */
+.map-view--fullscreen ~ .settings-button,
+.map-view--fullscreen ~ .settings-menu {
+  display: none !important;
 }
 
 .map-display {
