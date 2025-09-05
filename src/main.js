@@ -24,7 +24,7 @@ import { CompassGUI, addCompassToScene } from './compassGUI.js';
 import { ARNavigationArrow, addArrowToScene } from './arNavigationArrow.js';
 import { ARPathNavigationArrow, addPathArrowToScene } from './pathNavigationArrow.js';
 import { TargetMarker } from './targetMarker.js';
-import { updateDistance } from './distanceOverlay.js';
+import { updateDistance, updatePathDistance } from './distanceOverlay.js';
 import { MapView } from './mapView.js';
 import { showPopup, handleCameraError, handleGpsError, handleSensorError, checkBrowserSupport, checkSensorAvailability, handleGenericError } from './errorHandler.js';
 import { PathManager } from './pathManager.js';
@@ -281,10 +281,34 @@ if (distanceOverlay) {
   distanceOverlay.addEventListener('click', () => {
     distanceMode = distanceMode === 'distance' ? 'minutes' :
                    distanceMode === 'minutes' ? 'both' : 'distance';
-    if (targetCoords[indexActive]) {
-      updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
-    }
+    updateDistanceDisplay();
   });
+}
+
+/**
+ * Aktualisiert die Distanzanzeige basierend auf aktivem Pfad oder Zielmarker
+ */
+function updateDistanceDisplay() {
+  if (!distanceOverlay) return;
+  
+  // Prüfe ob ein Pfad aktiv ist
+  const isPathActive = activePathIndex >= 0 && pathManager?.paths?.length > activePathIndex;
+  
+  if (isPathActive && pathArrow) {
+    // Zeige Pfad-Distanz an
+    const pathInfo = pathArrow.getPathDistanceInfo();
+    if (pathInfo) {
+      updatePathDistance(pathInfo, distanceOverlay, { mode: distanceMode });
+      return;
+    }
+  }
+  
+  // Fallback: Zeige normale Zielmarker-Distanz an
+  if (targetCoords[indexActive]) {
+    updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
+  } else {
+    distanceOverlay.innerHTML = '';
+  }
 }
 
 /**
@@ -398,7 +422,6 @@ function addArrow() {
   
   // Callback für nach dem GLTF-Laden hinzufügen
   arrow.onArrowReady = () => {
-    console.log('[DEBUG] Normal Arrow GLTF geladen, aktualisiere Sichtbarkeit');
     updateArrowVisibility();
   };
 }
@@ -408,7 +431,6 @@ function addArrow() {
  * Dieser Pfeil zeigt auf den nächsten Punkt des aktiven Pfads und ist oran44444444ge.
  */
 function addPathArrow() {
-  console.log('[DEBUG] addPathArrow() aufgerufen');
   pathArrow = addPathArrowToScene({
     locar,
     camera: threeCamera,
@@ -420,11 +442,9 @@ function addPathArrow() {
     getActivePathIndex: () => activePathIndex
   });
   window.pathArrow = pathArrow; // für debugging etc.
-  console.log('[DEBUG] pathArrow erstellt:', pathArrow);
   
   // Callback für nach dem GLTF-Laden hinzufügen
   pathArrow.onArrowReady = () => {
-    console.log('[DEBUG] PathArrow GLTF geladen, aktualisiere Sichtbarkeit');
     updateArrowVisibility();
   };
 }
@@ -437,17 +457,14 @@ function ensureARElementsCreated(updateVisibility = true) {
   if (!locar || !threeCamera) return;
   
   if (!compass) {
-    console.log('[DEBUG] Erstelle Compass');
     addCompass();
   }
   
   if (!arrow) {
-    console.log('[DEBUG] Erstelle normalen Arrow');
     addArrow();
   }
   
   if (!pathArrow) {
-    console.log('[DEBUG] Erstelle PathArrow');
     addPathArrow();
   }
   
@@ -458,24 +475,13 @@ function ensureARElementsCreated(updateVisibility = true) {
 }
 function updateArrowVisibility() {
   const isPathActive = activePathIndex >= 0 && pathManager?.paths?.length > activePathIndex;
-  console.log('[DEBUG] updateArrowVisibility - isPathActive:', isPathActive, 'activePathIndex:', activePathIndex);
-  console.log('[DEBUG] pathManager:', pathManager);
-  console.log('[DEBUG] pathManager?.paths?.length:', pathManager?.paths?.length);
-  console.log('[DEBUG] arrow?.arrowObject:', !!arrow?.arrowObject);
-  console.log('[DEBUG] pathArrow?.arrowObject:', !!pathArrow?.arrowObject);
   
   if (arrow?.arrowObject) {
     arrow.arrowObject.visible = !isPathActive;
-    console.log('[DEBUG] Normal arrow visible:', !isPathActive);
-  } else {
-    console.log('[DEBUG] Normal arrow object not found!');
   }
   
   if (pathArrow?.arrowObject) {
     pathArrow.arrowObject.visible = isPathActive;
-    console.log('[DEBUG] Path arrow visible:', isPathActive);
-  } else {
-    console.log('[DEBUG] Path arrow object not found!');
   }
 }
 
@@ -883,7 +889,7 @@ function initMapViewAsync() {
         if (index !== indexActive) {
           setActive(index);
           showPopup('Ziel aktualisiert!', 2000);
-          updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
+          updateDistanceDisplay();
         } else {
           showPopup(title, 3000);
         }
@@ -913,9 +919,6 @@ async function initPathNavigation() {
   if (!pathManager) {
     pathManager = new PathManager({ locar, camera: threeCamera });
     window.pathManager = pathManager; // Globale Referenz setzen
-    console.log('[DEBUG] Neuen PathManager in initPathNavigation erstellt');
-  } else {
-    console.log('[DEBUG] PathManager bereits vorhanden, überspringe Erstellung');
   }
 }
 
@@ -1001,7 +1004,6 @@ function onGpsUpdate(e) {
         const nearestPathIndex = pathManager.paths.findIndex(p => p.id === nearest.path.id);
         // DEAKTIVIERT: Automatische Pfadaktivierung (überschreibt Nutzerauswahl)
         // if (distance < 100 && nearestPathIndex !== activePathIndex) setActivePath(nearestPathIndex);
-        console.log(`[DEBUG] Nächster Pfad: ${nearest.path.name} (${distance.toFixed(0)}m), aktiv: ${pathManager.paths[activePathIndex]?.name}`);
       }
     }
   } catch (err) {
@@ -1038,11 +1040,11 @@ function animate() {
 
   // Weniger kritische Updates (alle 3 Frames = ~20Hz bei 60 FPS)
   if (frameCount % 3 === 0) {
-    // Karte mitdrehen (Ausrichtung)
+    // Benutzer-Richtung auf Karte anzeigen (statt Kartenrotation)
     if (mapView?.map && controls?.getCorrectedHeading) {
       let heading = controls.getCorrectedHeading();
       if (isIOS) {
-        mapView.rotateToHeading(-heading); // iOS: Vorzeichen invertiert
+        mapView.updateUserHeading(-heading); // iOS: Vorzeichen invertiert
       } else {
         // Android: Korrektur im Landscape-Modus
         let orientationOffset = 0;
@@ -1054,14 +1056,12 @@ function animate() {
             orientationOffset = -90; // Gerät nach rechts gedreht
           }
         }
-        mapView.rotateToHeading(heading + orientationOffset);
+        mapView.updateUserHeading(heading + orientationOffset);
       }
     }
 
     // Distanzanzeige aktualisieren
-    if (targetCoords[indexActive]) {
-      updateDistance(currentCoords, targetCoords[indexActive], distanceOverlay, { mode: distanceMode });
-    }
+    updateDistanceDisplay();
   }
 
   // Render (jedes Frame - kritisch für flüssige AR)

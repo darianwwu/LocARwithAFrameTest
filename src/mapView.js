@@ -2,6 +2,7 @@
  * MapView - OpenLayers Integration für AR Navigation
  * Zeigt eine zusammenklappbare Karte in der unteren linken Ecke
  */
+export const CANON_CONE_R = 100;
 
 export class MapView {
   constructor(options = {}) {
@@ -13,7 +14,26 @@ export class MapView {
     this.isVisible = false;
     this.currentPosition = null;
     this.userInteractedWithMap = false; // Flag für Benutzerinteraktion
+    this._coneIconCache = {};
     
+    this.userConeCfg = {
+      // Größe
+      baseRadiusPx: 40,   // Radius (in px) bei refZoom
+      minRadiusPx: 16,    // Untergrenze
+      maxRadiusPx: 72,    // Obergrenze
+
+      // Zoom-Mapping
+      refZoom: 16,        // Referenz-Zoom (bei dem baseRadiusPx gilt)
+      alpha: 0.25,        // 0 = fix; 1 = sehr stark zoom-abhängig
+
+      // Optik
+      apertureDeg: 60,
+      fill: 'rgba(0,124,255,0.20)',
+      outline: 'none',
+      outlineWidth: 0
+    };
+    const CANON_CONE_R = 100;
+
     // Callback-Funktionen
     this.onMarkerClick = options.onMarkerClick || null;
     this.onMapInitialized = options.onMapInitialized || null;
@@ -24,18 +44,17 @@ export class MapView {
     
     this.initializeEvents();
   }
+  
 
   /**
-   * Dreht die Karte so, dass oben immer die Blickrichtung des Nutzers ist.
+   * Aktualisiert die Blickrichtung des Benutzers auf der Karte.
    * @param {number} heading - Heading in Grad (0 = Norden)
    */
-  rotateToHeading(heading) {
-    if (!this.map) return;
-    // OpenLayers: 0 = Norden oben, positive Werte gegen den Uhrzeigersinn (Radiant)
-    // Heading: 0 = Norden, im Uhrzeigersinn steigend
-    // Wir müssen also das Vorzeichen umdrehen und in Radiant umrechnen
-    const rotation = -heading * Math.PI / 180;
-    this.map.getView().setRotation(rotation);
+  updateUserHeading(heading, accuracyDeg = null) {
+    if (!this.userMarker) return;
+    this.userMarker.set('heading', heading);
+    if (accuracyDeg != null) this.userMarker.set('headingAccuracy', accuracyDeg);
+    this.userMarker.changed(); // Style-Funktion neu ausführen
   }
 
   initializeEvents() {
@@ -178,19 +197,13 @@ export class MapView {
       }
       
       this.userMarker = new ol.Feature({
-        geometry: new ol.geom.Point(ol.proj.fromLonLat(this.currentPosition)),
-        type: 'user'
-      });
+      geometry: new ol.geom.Point(ol.proj.fromLonLat(this.currentPosition)),
+      type: 'user'
+    });
 
-      this.userMarker.setStyle(new ol.style.Style({
-        image: new ol.style.Circle({
-          radius: 8,
-          fill: new ol.style.Fill({ color: '#007cff' }),
-          stroke: new ol.style.Stroke({ color: '#ffffff', width: 3 })
-        })
-      }));
-
-      this.vectorSource.addFeature(this.userMarker);
+    // Style-Funktion statt fixer Style:
+    this.userMarker.setStyle(this.getUserMarkerStyleFunction());
+    this.vectorSource.addFeature(this.userMarker);
 
       // Nur beim ersten Laden oder wenn Benutzer nicht interagiert hat, Karte zentrieren
       if (!this.userInteractedWithMap) {
@@ -219,7 +232,51 @@ export class MapView {
         );
       }
     }
-  }  addTargetMarker(lat, lon, title = 'Ziel', isActive = false, index = null) {
+  }
+  
+  /**
+   * Erstellt den Style für den Benutzermarker.
+   * @param {number} heading - Heading in Grad (optional, wird ignoriert)
+   * @returns {ol.style.Style}
+   */
+  getUserMarkerStyleFunction() {
+    return (feature, resolution) => {
+      // Zoom holen (robust, falls beim ersten Render noch undefined)
+      const view = this.map.getView();
+      const zoom = view.getZoom() ?? view.getConstrainedZoom(view.getZoomForResolution(resolution));
+
+      // Heading / Apertur
+      const headingDeg = feature.get('heading');
+      const headingAcc = feature.get('headingAccuracy');
+      const aperture = Number.isFinite(headingAcc)
+        ? Math.max(20, Math.min(90, headingAcc))
+        : this.userConeCfg.apertureDeg;
+
+      // Icon + dynamische Größe
+      const icon = this._getConeIcon(aperture);
+      const radiusPx = this._computeConeRadiusPx(zoom);
+      const scale = radiusPx / CANON_CONE_R;   // von „kanonisch“ auf Zielgröße
+      icon.setScale(scale);
+
+      // Rotation (Norden=0° → Kartenmathe Osten=0°)
+      icon.setRotation((( (headingDeg ?? 0) - 90) * Math.PI) / 180);
+
+      const coneStyle = new ol.style.Style({ image: icon, zIndex: 999 });
+      const dotStyle  = new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: 6,
+          fill: new ol.style.Fill({ color: '#007cff' }),
+          stroke: new ol.style.Stroke({ color: '#ffffff', width: 3 })
+        }),
+        zIndex: 1000
+      });
+
+      return Number.isFinite(headingDeg) ? [coneStyle, dotStyle] : [dotStyle];
+    };
+  }
+
+
+  addTargetMarker(lat, lon, title = 'Ziel', isActive = false, index = null) {
     if (!this.map) return;
 
     // Verwende den übergebenen Index oder den nächsten verfügbaren Index
@@ -539,6 +596,57 @@ export class MapView {
     this.rescuePointMarkers = [];
     console.log('Alle Rettungspunkt-Marker entfernt');
   }
+
+  _buildConeSVG(apertureDeg, { fill, outline, outlineWidth }) {
+    const r  = CANON_CONE_R;
+    const a  = (apertureDeg * Math.PI) / 180;
+    const cx = r, cy = r;
+    const x1 = cx + r * Math.cos(-a / 2);
+    const y1 = cy + r * Math.sin(-a / 2);
+    const x2 = cx + r * Math.cos( a / 2);
+    const y2 = cy + r * Math.sin( a / 2);
+
+    const strokeAttr = (outline === 'none') ? '' : `stroke="${outline}" stroke-width="${outlineWidth}"`;
+
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${2*r}" height="${2*r}" viewBox="0 0 ${2*r} ${2*r}">
+        <path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z"
+              fill="${fill}" ${strokeAttr}/>
+      </svg>
+    `;
+  }
+
+  _getConeIcon(apertureDeg = this.userConeCfg.apertureDeg) {
+    const key = `${apertureDeg}|${this.userConeCfg.fill}|${this.userConeCfg.outline}|${this.userConeCfg.outlineWidth}`;
+    this._coneIconCache ||= {};
+    if (this._coneIconCache[key]) return this._coneIconCache[key];
+
+    const svg = this._buildConeSVG(apertureDeg, {
+      fill: this.userConeCfg.fill,
+      outline: this.userConeCfg.outline,
+      outlineWidth: this.userConeCfg.outlineWidth
+    });
+
+    const icon = new ol.style.Icon({
+      src: "data:image/svg+xml;utf8," + encodeURIComponent(svg),
+      imgSize: [CANON_CONE_R * 2, CANON_CONE_R * 2],
+      anchor: [0.5, 0.5],
+      anchorXUnits: 'fraction',
+      anchorYUnits: 'fraction',
+      rotateWithView: true
+    });
+
+    this._coneIconCache[key] = icon;
+    return icon;
+  }
+
+  _computeConeRadiusPx(zoom) {
+    const cfg = this.userConeCfg;
+    const factor = Math.pow(2, cfg.alpha * (zoom - cfg.refZoom));
+    const r = cfg.baseRadiusPx * factor;
+    return Math.max(cfg.minRadiusPx, Math.min(cfg.maxRadiusPx, r));
+  }
+
 }
 
 // Styles beim Import injizieren

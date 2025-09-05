@@ -68,6 +68,84 @@ export function updateDistance(currentCoords, targetCoords, distanceOverlay, opt
 }
 
 /**
+ * Zeigt pfadbezogene Distanzinformationen an
+ * @param {Object} pathInfo - Pfadinformationen
+ * @param {Object} pathInfo.path - Der aktive Pfad
+ * @param {number} pathInfo.distanceToPath - Entfernung zum nächsten Punkt auf dem Pfad (in Metern)
+ * @param {boolean} pathInfo.isOnPath - Ob sich der Nutzer auf dem Pfad befindet (<20m)
+ * @param {HTMLElement} distanceOverlay - UI-Element für die Anzeige
+ * @param {Object} options - Anzeigeoptionen
+ */
+export function updatePathDistance(pathInfo, distanceOverlay, options = {}) {
+  const { path, distanceToPath, isOnPath } = pathInfo;
+  const mode = options.mode || 'distance';
+  
+  if (!path) {
+    distanceOverlay.innerHTML = '';
+    return;
+  }
+  
+  // Gesamtlänge des Pfades
+  const totalDistance = path.distance || 0;
+  let totalDistanceText = '';
+  
+  if (totalDistance >= 1000) {
+    const km = totalDistance / 1000;
+    totalDistanceText = `${km.toFixed(1).replace('.', ',')} km`;
+  } else {
+    totalDistanceText = `${Math.round(totalDistance)} m`;
+  }
+  
+  // Gehzeit für den gesamten Pfad
+  const totalWalkingTime = calculateWalkingTime(totalDistance);
+  
+  let displayText = '';
+  
+  // Wenn Nutzer nicht auf dem Pfad ist, zeige zuerst die Distanz zum Pfad
+  if (!isOnPath && distanceToPath !== null && distanceToPath !== undefined) {
+    let toPathText = '';
+    
+    if (distanceToPath >= 1000) {
+      const km = distanceToPath / 1000;
+      toPathText = `${km.toFixed(1).replace('.', ',')} km`;
+    } else {
+      toPathText = `${Math.round(distanceToPath)} m`;
+    }
+    
+    // Erste Zeile: Distanz zum Pfad
+    if (mode === 'minutes') {
+      const walkTime = calculateWalkingTime(distanceToPath);
+      displayText = `➤ ${walkTime}`;
+    } else if (mode === 'both') {
+      const walkTime = calculateWalkingTime(distanceToPath);
+      displayText = `➤ ${toPathText} / ${walkTime}`;
+    } else {
+      displayText = `➤ ${toPathText}`;
+    }
+    
+    // Zweite Zeile: Gesamtlänge des Pfades
+    if (mode === 'minutes') {
+      displayText += `<br>${totalWalkingTime}`;
+    } else if (mode === 'both') {
+      displayText += `<br>${totalDistanceText} / ${totalWalkingTime}`;
+    } else {
+      displayText += `<br>${totalDistanceText}`;
+    }
+  } else {
+    // Nutzer ist auf dem Pfad: nur Gesamtlänge anzeigen
+    if (mode === 'minutes') {
+      displayText = `${totalWalkingTime}`;
+    } else if (mode === 'both') {
+      displayText = `${totalDistanceText} / ${totalWalkingTime}`;
+    } else {
+      displayText = `${totalDistanceText}`;
+    }
+  }
+  
+  distanceOverlay.innerHTML = displayText;
+}
+
+/**
  * Berechnet die Gehzeit in Minuten für eine gegebene Distanz
  * @param {number} distance - Distanz in Metern
  * @returns {string} Formatierte Gehzeit (z.B. "5 Gehminuten" oder "1 Gehminute")

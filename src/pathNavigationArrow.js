@@ -14,7 +14,6 @@ import 'three';
 
 export class ARPathNavigationArrow {
   constructor({ locar, camera, deviceOrientationControl, getPathManager, currentCoords, isIOS, getScreenOrientation, getActivePathIndex }) {
-    console.log('[DEBUG] PathNavigationArrow constructor - getPathManager:', typeof getPathManager);
     this.locar = locar;
     this.camera = camera;
     this.deviceOrientationControl = deviceOrientationControl;
@@ -33,6 +32,13 @@ export class ARPathNavigationArrow {
     this.lastAngle = 0;
     this.updateThreshold = 50; // Minimum ms zwischen Updates
     this.angleThreshold = 2; // Minimum Grad Änderung für Update
+    
+    // Für Distanz-basierte Sichtbarkeit (Performance-Optimierung)
+    this.lastDistanceCheck = 0;
+    this.distanceCheckThreshold = 500; // Distanz-Check alle 500ms
+    this.hideDistance = 20; // Pfeil ausblenden wenn < 20m vom Pfad entfernt
+    this.isHiddenByDistance = false;
+    this.lastKnownDistance = Infinity;
   }
 
   /**
@@ -54,7 +60,6 @@ export class ARPathNavigationArrow {
   }
 
   setupArrow() {
-    console.log('[DEBUG] PathArrow setupArrow() aufgerufen');
     this.arrowObject.scale.set(0.2, 0.2, 0.2);
     // Frustum Culling deaktivieren, damit der Pfeil immer sichtbar ist
     this.arrowObject.traverse(child => {
@@ -64,7 +69,6 @@ export class ARPathNavigationArrow {
         child.material = child.material.clone();
         child.material.color.setHex(0xff8800); // Orange Farbe
         child.material.needsUpdate = true;
-        console.log('[DEBUG] PathArrow Material auf Orange gesetzt');
       }
     });
     // Pfeil dem Kamera-Objekt hinzufügen
@@ -73,7 +77,6 @@ export class ARPathNavigationArrow {
     
     // Initial sichtbar setzen - Sichtbarkeit wird durch updateArrowVisibility() gesteuert
     this.arrowObject.visible = true;
-    console.log('[DEBUG] PathArrow zur Kamera hinzugefügt, initial SICHTBAR');
     
     // Klick-Listener registrieren
     window.addEventListener("click", this.handleClick);
@@ -212,6 +215,88 @@ export class ARPathNavigationArrow {
   }
 
   /**
+   * Prüft die Entfernung zum aktiven Pfad und passt die Sichtbarkeit entsprechend an.
+   * Optimiert für Performance durch gedrosselten Distanz-Check.
+   * @returns {boolean} true wenn Pfeil sichtbar sein soll, false wenn ausgeblendet
+   */
+  checkDistanceVisibility() {
+    const now = Date.now();
+    
+    // Distanz-Check nur alle 500ms durchführen (Performance)
+    if (now - this.lastDistanceCheck < this.distanceCheckThreshold) {
+      return !this.isHiddenByDistance;
+    }
+    
+    this.lastDistanceCheck = now;
+    
+    // Aktiven Pfad holen
+    const activeIndex = this.getActivePathIndex();
+    const pathManager = this.getPathManager();
+    const actualPathManager = (pathManager?.paths?.length > 0) ? pathManager : window.pathManager;
+    const activePath = actualPathManager?.paths?.[activeIndex];
+    
+    if (!activePath) {
+      this.isHiddenByDistance = false;
+      return true;
+    }
+    
+    // Nächsten Punkt auf dem Pfad finden
+    const closestPoint = this.findClosestPointOnPath(this.currentCoords, activePath);
+    if (!closestPoint) {
+      this.isHiddenByDistance = false;
+      return true;
+    }
+    
+    const distance = closestPoint.distance;
+    this.lastKnownDistance = distance;
+    
+    // Hysterese implementieren: verschiedene Schwellenwerte für Ein-/Ausblenden
+    // um "Flackern" zu vermeiden
+    const hideThreshold = this.hideDistance; // 20m
+    const showThreshold = this.hideDistance + 5; // 25m (Hysterese)
+    
+    if (this.isHiddenByDistance) {
+      // Aktuell ausgeblendet -> einblenden wenn > 25m
+      if (distance > showThreshold) {
+        this.isHiddenByDistance = false;
+      }
+    } else {
+      // Aktuell sichtbar -> ausblenden wenn < 20m
+      if (distance < hideThreshold) {
+        this.isHiddenByDistance = true;
+      }
+    }
+    
+    return !this.isHiddenByDistance;
+  }
+
+  /**
+   * Gibt Distanz-Informationen für das Distance-Overlay zurück
+   * @returns {Object|null} - {path, distanceToPath, isOnPath} oder null
+   */
+  getPathDistanceInfo() {
+    const activeIndex = this.getActivePathIndex();
+    const pathManager = this.getPathManager();
+    const actualPathManager = (pathManager?.paths?.length > 0) ? pathManager : window.pathManager;
+    const activePath = actualPathManager?.paths?.[activeIndex];
+    
+    if (!activePath || !this.currentCoords.latitude || !this.currentCoords.longitude) {
+      return null;
+    }
+    
+    // Nächsten Punkt auf dem Pfad finden
+    const closestPoint = this.findClosestPointOnPath(this.currentCoords, activePath);
+    const distanceToPath = closestPoint ? closestPoint.distance : null;
+    const isOnPath = distanceToPath !== null && distanceToPath < this.hideDistance;
+    
+    return {
+      path: activePath,
+      distanceToPath: distanceToPath,
+      isOnPath: isOnPath
+    };
+  }
+
+  /**
    * Setzt die Sichtbarkeit des Pfad-Pfeils
    * @param {boolean} visible - Sichtbarkeit
    */
@@ -228,19 +313,16 @@ export class ARPathNavigationArrow {
   isPathActive() {
     const activeIndex = this.getActivePathIndex();
     const pathManager = this.getPathManager(); // Hole aktuellen PathManager
-    console.log('[DEBUG] PathArrow isPathActive - activeIndex:', activeIndex, 'pathManager paths length:', pathManager?.paths?.length);
-    console.log('[DEBUG] PathArrow isPathActive - pathManager:', pathManager);
-    console.log('[DEBUG] PathArrow isPathActive - window.pathManager:', window.pathManager);
     
     // WORKAROUND: Verwende globale Variable falls lokale leer ist
     const actualPathManager = (pathManager?.paths?.length > 0) ? pathManager : window.pathManager;
-    console.log('[DEBUG] PathArrow isPathActive - actualPathManager paths length:', actualPathManager?.paths?.length);
     
     return activeIndex >= 0 && actualPathManager && actualPathManager.paths && actualPathManager.paths.length > activeIndex;
   }
 
   /**
    * Aktualisiert die Position und Rotation des Pfeils basierend auf dem nächsten Punkt auf dem aktiven Pfad.
+   * Optimiert: Updates werden ausgesetzt wenn Pfeil durch Distanz ausgeblendet ist.
    */
   update() {
     if (
@@ -256,13 +338,25 @@ export class ARPathNavigationArrow {
       return;
     }
 
-    console.log('[DEBUG] PathArrow update - Pfad ist aktiv, aktualisiere Pfeil');
+    // Performance-Optimierung: Distanz-basierte Sichtbarkeit prüfen
+    const shouldBeVisible = this.checkDistanceVisibility();
+    
+    // Pfeil-Sichtbarkeit aktualisieren (aber nur wenn sich etwas geändert hat)
+    if (this.arrowObject.visible !== shouldBeVisible) {
+      this.arrowObject.visible = shouldBeVisible;
+    }
+    
+    // Performance-Optimierung: Updates aussetzen wenn Pfeil nicht sichtbar ist
+    if (!shouldBeVisible) {
+      return;
+    }
 
+    // Aktiven Pfad holen
+    // Aktiven Pfad holen
     const now = Date.now();
     // Updates drosseln (Stabilität)
     if (now - this.lastUpdate < this.updateThreshold) return;
 
-    // Aktiven Pfad holen
     const activeIndex = this.getActivePathIndex();
     const pathManager = this.getPathManager(); // Hole aktuellen PathManager
     
@@ -270,16 +364,11 @@ export class ARPathNavigationArrow {
     const actualPathManager = (pathManager?.paths?.length > 0) ? pathManager : window.pathManager;
     const activePath = actualPathManager.paths[activeIndex];
     
-    console.log('[DEBUG] PathArrow - activePath:', activePath?.name, 'coords length:', activePath?.wgs84Coords?.length);
-    
     // Nächsten Punkt auf dem Pfad finden
     const closestPoint = this.findClosestPointOnPath(this.currentCoords, activePath);
     if (!closestPoint) {
-      console.log('[DEBUG] PathArrow - Kein nächster Punkt gefunden');
       return;
     }
-    
-    console.log('[DEBUG] PathArrow - Nächster Punkt:', closestPoint.latitude, closestPoint.longitude);
 
     // Weltpositionen von Zielpunkt und Nutzer aus LoCAR
     const [tx, tz] = this.locar.lonLatToWorldCoords(
