@@ -2,7 +2,7 @@
  * Hauptlogik der AR-Navigation (A-Frame + Three.js + LoCAR)
  * - Verwaltung von Zielmarkern und Pfaden
  * - UI/Settings für Kompass, GPS, Karte, Farben, Rettungspunkte, ...
- * - AR-Initialisierung, GPS-Update-Handling und Animationsschleife
+ * - AR-Initialisierung, GPS-Update-Handling und Animationsschleifen
  *
  * Struktur:
  *  1) Imports & DOM-Referenzen
