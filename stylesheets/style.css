@@ -337,6 +337,12 @@ canvas {
   color: var(--color-surface);
 }
 
+.btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Button Group */
 .btn-group {
   display: flex;
