@@ -12,10 +12,35 @@ export class ARPathChevrons {
     this.isActive = options.isActive || false;
     this._anchorEntity = null;
 
-    this.height   = options.height   ?? 2.8;  // meters above ground
-    this.spacing  = options.spacing  ?? 3.0;  // meters between chevrons
-    this.scale    = options.scale    ?? 0.8;  // base size
+    this.height   = options.height   ?? 0.5;  // meters above ground
+    this.spacing  = options.spacing  ?? 12.0;  // meters between chevrons (weiter vergrößert)
+    this.scale    = options.scale    ?? 1.5;  // base size (noch größer für längere Pfeile)
     this.speed    = options.speed    ?? 1.5;  // meters per second
+
+    // Farbschemas für verschiedene Navigationsstile
+    this.colorSchemes = {
+      electricCyan: {
+        pathColor: 0x00B8FF,     // Electric Cyan
+        arrowColor: 0xFFFFFF,    // Weiß
+        borderColor: 0x001A33,   // Dunkelblau Border
+        shadowColor: 'rgba(0,26,51,0.6)'
+      },
+      royalBlue: {
+        pathColor: 0x2A6CF5,     // Royal Blue
+        arrowColor: 0xFFFFFF,    // Weiß
+        borderColor: 0x001A33,   // Dunkelblau Border
+        shadowColor: 'rgba(0,26,51,0.55)'
+      },
+      vividMagenta: {
+        pathColor: 0xD100FF,     // Vivid Magenta
+        arrowColor: 0xFFFFFF,    // Weiß
+        borderColor: 0x220033,   // Dunkelviolett Border
+        shadowColor: 'rgba(34,0,51,0.55)'
+      }
+    };
+
+    this.currentColorScheme = options.colorScheme || 'electricCyan';
+    this.color = this.colorSchemes[this.currentColorScheme].pathColor;
 
     this.pathObject = null;     // InstancedMesh
     this.material = null;
@@ -95,16 +120,22 @@ export class ARPathChevrons {
     this._buildSegments();
     if (this._totalLength <= 0) return null;
 
-    // Create base geometry: a small cone that points along +Y by default; we rotate later
-    const geo = new THREE.ConeGeometry(0.25 * this.scale, 0.8 * this.scale, 8, 1, false);
+    // Create base geometry: a longer, more prominent arrow that points along +Y by default
+    const geo = new THREE.ConeGeometry(0.5 * this.scale, 2.0 * this.scale, 8, 1, false);
     geo.rotateX(Math.PI / 2); // make it point along +Z so yaw around Y works
 
-    this.material = new THREE.MeshBasicMaterial({
-      color: this.isActive ? 0xff4444 : this.color,
+    const scheme = this.colorSchemes[this.currentColorScheme];
+    
+    // Create materials for multi-material chevron (arrow + border)
+    const arrowMaterial = new THREE.MeshBasicMaterial({
+      color: scheme.pathColor, // Verwende Electric Cyan für aktive Pfade
       transparent: true,
       opacity: 0.95,
       depthWrite: false
     });
+
+    // Verwende das Pfeil-Material als Haupt-Material
+    this.material = arrowMaterial;
 
     // number of instances along the path (extra to cover gaps during animation)
     this._count = Math.max(2, Math.floor(this._totalLength / this.spacing) + 2);
@@ -160,8 +191,28 @@ export class ARPathChevrons {
   setActive(isActive) {
     this.isActive = isActive;
     if (this.material) {
-      this.material.color.set(this.isActive ? 0xff4444 : this.color);
+      const scheme = this.colorSchemes[this.currentColorScheme];
+      // Aktive Pfade in Electric Cyan, inaktive gedämpft
+      this.material.color.set(this.isActive ? scheme.pathColor : scheme.pathColor);
+      this.material.opacity = this.isActive ? 0.95 : 0.4;
       this.material.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Wechselt das Farbschema für die Chevrons
+   * @param {string} schemeName - 'electricCyan', 'royalBlue', oder 'vividMagenta'
+   */
+  setColorScheme(schemeName) {
+    if (this.colorSchemes[schemeName]) {
+      this.currentColorScheme = schemeName;
+      this.color = this.colorSchemes[schemeName].pathColor;
+      if (this.material) {
+        const scheme = this.colorSchemes[schemeName];
+        // Verwende die Pfadfarbe (Electric Cyan) für aktive Pfade
+        this.material.color.set(scheme.pathColor);
+        this.material.needsUpdate = true;
+      }
     }
   }
 

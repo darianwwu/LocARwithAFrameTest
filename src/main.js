@@ -147,6 +147,8 @@ const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i);
 
 // Pfadstil (AR-Darstellung): 'flowline' | 'chevrons' | 'tube'
 let pathStyle = 'chevrons';
+let pathColorScheme = 'electricCyan'; // 'electricCyan' | 'royalBlue' | 'vividMagenta'
+
 window.setPathStyle = (style) => {
   pathStyle = style;
   if (pathManager?.paths?.length > 0 && activePathIndex >= 0) {
@@ -155,6 +157,24 @@ window.setPathStyle = (style) => {
   } else {
     showPopup(`Pfad-Stil gesetzt: ${style} (wirkt beim nächsten Pfad-Laden)`, 2000);
   }
+};
+
+window.setPathColorScheme = (scheme) => {
+  pathColorScheme = scheme;
+  // Aktualisiere bestehende Chevron-Pfade
+  if (arPaths?.length > 0) {
+    arPaths.forEach(path => {
+      if (path && typeof path.setColorScheme === 'function') {
+        path.setColorScheme(scheme);
+      }
+    });
+  }
+  const schemeNames = {
+    electricCyan: 'Electric Cyan',
+    royalBlue: 'Royal Blue', 
+    vividMagenta: 'Vivid Magenta'
+  };
+  showPopup(`Farbschema: ${schemeNames[scheme] || scheme}`, 1500);
 };
 
 /* ============================================================================
@@ -652,7 +672,7 @@ function createARPaths(activePath) {
   if (pathStyle === 'flowline') {
     arPath = new ARPathFlowLine({ ...common, color: 0x00ff88, width: 0.5, height: 2.6, dashSize: 3, gapSize: 1.2, speed: 2.2 });
   } else if (pathStyle === 'chevrons') {
-    arPath = new ARPathChevrons({ ...common, color: 0xff8800, spacing: 5.0, scale: 0.9, height: 0.1, speed: 2.0 });
+    arPath = new ARPathChevrons({ ...common, colorScheme: pathColorScheme, spacing: 12.0, scale: 1.5, height: 0.5, speed: 1.5 });
   } else {
     arPath = new ARPathTube({ ...common, color: 0x00ff00, radius: 0.3, height: 0.5 });
   }
@@ -750,7 +770,8 @@ async function loadAndShowRescuePoints() {
         if (locar && threeCamera) addMarker(markerData, targetCoords.length - 1);
       }
 
-      if (mapView?.map) {
+      // Rettungspunkt immer zur MapView hinzufügen (auch wenn Karte noch nicht initialisiert)
+      if (mapView) {
         mapView.addRescuePointMarker(rp.latitude, rp.longitude, rp.name, rp.distance);
       }
     });
@@ -893,6 +914,29 @@ function initMapViewAsync() {
         } else {
           showPopup(title, 3000);
         }
+      },
+      onRescuePointClick: (lat, lon, name) => {
+        // Rettungspunkt als neuen Zielmarker hinzufügen
+        const data = { 
+          latitude: lat, 
+          longitude: lon, 
+          popupContent: `Rettungspunkt: ${name}` 
+        };
+        
+        targetCoords.push(data);
+        const newIndex = targetCoords.length - 1;
+        
+        // Marker in AR hinzufügen (falls AR aktiv)
+        addMarker(data, newIndex);
+        
+        // Marker auf Karte hinzufügen
+        mapView?.addTargetMarker(data.latitude, data.longitude, data.popupContent, false);
+        
+        // Neuen Marker aktivieren
+        setActive(newIndex);
+        
+        showPopup(`Rettungspunkt "${name}" als Ziel hinzugefügt!`, 3000);
+        updateDistanceDisplay();
       },
       onMapInitialized: () => {
         // Marker/Pfade in nächstem Frame synchronisieren (non-blocking)

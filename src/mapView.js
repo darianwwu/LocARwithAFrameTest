@@ -10,6 +10,7 @@ export class MapView {
     this.userMarker = null;
     this.targetMarkers = [];
     this.rescuePointMarkers = []; // Array für Rettungspunkt-Marker
+    this.pendingRescuePoints = []; // Array für Rettungspunkte, die hinzugefügt werden sollen, bevor die Karte initialisiert wurde
     this.vectorSource = null;
     this.isVisible = false;
     this.isFullscreen = false; // Neues Flag für Fullscreen-Modus
@@ -37,6 +38,7 @@ export class MapView {
 
     // Callback-Funktionen
     this.onMarkerClick = options.onMarkerClick || null;
+    this.onRescuePointClick = options.onRescuePointClick || null;
     this.onMapInitialized = options.onMapInitialized || null;
     
     this.mapContainer = document.getElementById('mapView');
@@ -81,6 +83,8 @@ export class MapView {
     // Kurze Verzögerung für CSS-Transition
     setTimeout(() => {
       this.initializeMap();
+      // Pending Rettungspunkte hinzufügen nach der Initialisierung
+      this.addPendingRescuePoints();
     }, 100);
   }
 
@@ -141,6 +145,18 @@ export class MapView {
           if (typeof this.onMarkerClick === 'function') {
             this.onMarkerClick(index, feature.get('title'));
           }
+        } else if (feature && feature.get('type') === 'rescue') {
+          // Rettungspunkt angeklickt - als neuen Zielmarker hinzufügen
+          const lat = feature.get('latitude');
+          const lon = feature.get('longitude');
+          const name = feature.get('title');
+          
+          console.log(`Rettungspunkt angeklickt: ${name} (${lat}, ${lon})`);
+          
+          // Callback an main.js, um Rettungspunkt als Zielmarker hinzuzufügen
+          if (typeof this.onRescuePointClick === 'function') {
+            this.onRescuePointClick(lat, lon, name);
+          }
         }
       });
 
@@ -152,6 +168,9 @@ export class MapView {
       });
 
       console.log('Map initialized successfully');
+      
+      // Pending Rettungspunkte hinzufügen, falls vorhanden
+      this.addPendingRescuePoints();
       
       // Callback aufrufen, wenn die Karte initialisiert wurde
       if (this.onMapInitialized) {
@@ -627,6 +646,22 @@ export class MapView {
   }
 
   /**
+   * Fügt alle pending Rettungspunkte zur Karte hinzu
+   */
+  addPendingRescuePoints() {
+    if (this.pendingRescuePoints.length > 0) {
+      console.log(`[MapView] Adding ${this.pendingRescuePoints.length} pending rescue points to map`);
+      this.pendingRescuePoints.forEach(rescuePoint => {
+        this.addRescuePointMarkerInternal(rescuePoint.lat, rescuePoint.lon, rescuePoint.name, rescuePoint.distance);
+      });
+      this.pendingRescuePoints = []; // Clear pending list
+      console.log(`[MapView] All pending rescue points added, list cleared`);
+    } else {
+      console.log(`[MapView] No pending rescue points to add`);
+    }
+  }
+
+  /**
    * Fügt einen Rettungspunkt-Marker zur Karte hinzu
    * @param {number} lat - Breitengrad
    * @param {number} lon - Längengrad  
@@ -634,29 +669,41 @@ export class MapView {
    * @param {number} distance - Entfernung in Metern
    */
   addRescuePointMarker(lat, lon, name, distance) {
-    if (!this.map) return;
+    console.log(`[MapView] addRescuePointMarker called: ${name}, map ready: ${!!this.map}, vectorSource ready: ${!!this.vectorSource}`);
+    
+    if (!this.map || !this.vectorSource) {
+      // Karte noch nicht initialisiert, Rettungspunkt für später vormerken
+      this.pendingRescuePoints.push({ lat, lon, name, distance });
+      console.log(`[MapView] Rescue point "${name}" added to pending list (map not initialized yet). Pending count: ${this.pendingRescuePoints.length}`);
+      return null;
+    }
 
+    return this.addRescuePointMarkerInternal(lat, lon, name, distance);
+  }
+
+  /**
+   * Interne Methode zum Hinzufügen eines Rettungspunkt-Markers (nur wenn Karte bereit ist)
+   * @param {number} lat - Breitengrad
+   * @param {number} lon - Längengrad  
+   * @param {string} name - Name des Rettungspunkts
+   * @param {number} distance - Entfernung in Metern
+   */
+  addRescuePointMarkerInternal(lat, lon, name, distance) {
     const marker = new ol.Feature({
       geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
       type: 'rescue',
       title: name,
-      distance: distance
+      distance: distance,
+      latitude: lat,
+      longitude: lon
     });
 
-    // Rettungspunkt-Style (rotes Kreuz)
+    // Rettungspunkt-Style mit Rettungspunkt-Schild
     const rescueStyle = new ol.style.Style({
-      image: new ol.style.Circle({
-        radius: 8,
-        fill: new ol.style.Fill({ color: '#ff0000' }),
-        stroke: new ol.style.Stroke({ 
-          color: '#ffffff', 
-          width: 2 
-        })
-      }),
-      text: new ol.style.Text({
-        text: '🚑',
-        font: '12px sans-serif',
-        fill: new ol.style.Fill({ color: '#ffffff' })
+      image: new ol.style.Icon({
+        src: './images/schild_rettungspunkt.png',
+        scale: 0.025, // Ein Zehntel der vorherigen Größe (0.25 → 0.025)
+        anchor: [0.5, 0.5]
       }),
       zIndex: 500
     });
@@ -665,7 +712,7 @@ export class MapView {
     this.vectorSource.addFeature(marker);
     this.rescuePointMarkers.push(marker);
     
-    console.log(`Rettungspunkt zur Karte hinzugefügt: ${name} (${(distance/1000).toFixed(1)}km)`);
+    console.log(`[MapView] Rettungspunkt zur Karte hinzugefügt: ${name} (${(distance/1000).toFixed(1)}km)`);
     return marker;
   }
 
@@ -673,11 +720,18 @@ export class MapView {
    * Entfernt alle Rettungspunkt-Marker von der Karte
    */
   removeRescuePointMarkers() {
+    // Entferne alle Marker von der Karte (falls sie bereits hinzugefügt wurden)
     this.rescuePointMarkers.forEach(marker => {
-      this.vectorSource.removeFeature(marker);
+      if (this.vectorSource) {
+        this.vectorSource.removeFeature(marker);
+      }
     });
     this.rescuePointMarkers = [];
-    console.log('Alle Rettungspunkt-Marker entfernt');
+    
+    // Lösche auch alle pending Rettungspunkte
+    this.pendingRescuePoints = [];
+    
+    console.log('Alle Rettungspunkt-Marker und pending Rettungspunkte entfernt');
   }
 
   _buildConeSVG(apertureDeg, { fill, outline, outlineWidth }) {
