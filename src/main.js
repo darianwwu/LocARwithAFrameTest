@@ -2,7 +2,7 @@
  * Hauptlogik der AR-Navigation (A-Frame + Three.js + LoCAR)
  * - Verwaltung von Zielmarkern und Pfaden
  * - UI/Settings für Kompass, GPS, Karte, Farben, Rettungspunkte, ...
- * - AR-Initialisierung, GPS-Update-Handling und Animationsschleife
+ * - AR-Initialisierung, GPS-Update-Handling und Animationsschleifen
  *
  * Struktur:
  *  1) Imports & DOM-Referenzen
@@ -177,6 +177,26 @@ window.setPathColorScheme = (scheme) => {
   showPopup(`Farbschema: ${schemeNames[scheme] || scheme}`, 1500);
 };
 
+/**
+ * Prüft ob genügend Navigationsdaten vorhanden sind und aktiviert/deaktiviert den Start-Button
+ */
+function checkNavigationReadiness() {
+  const hasTargets = targetCoords.length > 0;
+  const hasPaths = pathManager?.paths?.length > 0;
+  const isReady = hasTargets || hasPaths;
+  
+  if (btnStart) {
+    btnStart.disabled = !isReady;
+    btnStart.classList.toggle('btn--disabled', !isReady);
+    
+    if (!isReady) {
+      btnStart.title = 'Bitte erst Marker oder Pfade hinzufügen';
+    } else {
+      btnStart.title = '';
+    }
+  }
+}
+
 /* ============================================================================
  * 3) Utilities
  * ========================================================================== */
@@ -233,6 +253,13 @@ function updateArrowColor(color) {
       child.material.needsUpdate = true;
     }
   });
+}
+
+// Initial den Button deaktivieren
+if (btnStart) {
+  btnStart.disabled = true;
+  btnStart.classList.add('btn--disabled');
+  btnStart.title = 'Bitte erst Marker oder Pfade hinzufügen';
 }
 
 /* ============================================================================
@@ -366,6 +393,7 @@ btnAdd?.addEventListener('click', () => {
   }
 
   showPopup('Marker hinzugefügt!', 1500);
+  checkNavigationReadiness(); // Navigation-Bereitschaft prüfen
 });
 
 /**
@@ -400,6 +428,7 @@ btnTest?.addEventListener('click', async () => {
 
     const skipped = ms.length - unique.length;
     showPopup(`${unique.length} Marker hinzugefügt${skipped ? `, ${skipped} Duplikate übersprungen` : ''}!`, 2000);
+    checkNavigationReadiness(); // Navigation-Bereitschaft prüfen
   } catch (err) {
     handleGpsError(err);
   }
@@ -1121,7 +1150,10 @@ function animate() {
  */
 btnStart?.addEventListener('click', async () => {
   try {
-    if (!targetCoords?.length) return showPopup('Bitte mindestens ein Ziel hinzufügen!', 3000);
+    // Zusätzliche Prüfung zur Sicherheit
+    if (!targetCoords?.length && (!pathManager?.paths?.length)) {
+      return showPopup('Bitte mindestens ein Ziel oder einen Pfad hinzufügen!', 3000);
+    }
     if (!checkBrowserSupport()) return;
 
     // AR init parallel zu iOS-Orientation-Permission
@@ -1189,6 +1221,7 @@ btnLoadPaths?.addEventListener('click', async () => {
     }
 
     showPopup(`${paths.length} Wege geladen`, 2000);
+    checkNavigationReadiness(); // Navigation-Bereitschaft prüfen
   } catch (error) {
     console.error('Fehler beim Laden der Pfade:', error);
     showPopup('Fehler beim Laden der Pfade', 3000);
